@@ -1,0 +1,39 @@
+{
+	email admin@example.com
+	admin off
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+financehub.example.com {
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	# Static files served directly — no FastAPI overhead
+	handle /static/* {
+		root * /srv
+		file_server
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	# Caddy health check
+	handle /healthz {
+		respond "OK" 200
+	}
+
+	# All other traffic → FastAPI app
+	# Caddy manages proxy headers automatically; no manual header_up overrides needed
+	reverse_proxy app:8000
+
+	# Security headers (CSP is NOT set here — FastAPI middleware injects per-request nonce)
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		-Server
+	}
+}

@@ -1,0 +1,7 @@
+# Replace the placeholder age recipient with your actual public key.
+# Generate key on VPS: age-keygen -o /etc/financehub/age-key.txt
+# The public key is printed to stdout during generation.
+
+creation_rules:
+  - path_regex: secrets/secrets\.enc\.yaml$
+    age: age1REPLACEME_PASTE_YOUR_AGE_PUBLIC_KEY_HERE
