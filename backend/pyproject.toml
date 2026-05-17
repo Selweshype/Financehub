@@ -1,0 +1,73 @@
+[project]
+name = "financehub"
+version = "0.1.0"
+description = "Self-hosted personal finance app"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Web framework
+    "fastapi==0.115.*",
+    "uvicorn[standard]==0.32.*",
+    "python-multipart==0.0.17",
+
+    # Templates
+    "jinja2==3.1.*",
+
+    # HTTP client (GoCardless API)
+    "httpx==0.28.*",
+
+    # Database
+    "sqlalchemy[asyncio]==2.0.*",
+    "aiosqlite==0.20.*",
+    "sqlcipher3==0.5.*",
+    "alembic==1.14.*",
+
+    # Authentication
+    "py-webauthn==2.2.*",
+    "pyotp==2.9.*",
+    "itsdangerous==2.2.*",
+    "qrcode==8.0.*",
+
+    # Cryptography (AES-GCM for token storage)
+    "cryptography==44.*",
+
+    # Secrets (parse SOPS-decrypted YAML)
+    "pyyaml==6.0.*",
+
+    # Scheduling (nightly sync)
+    "apscheduler==4.0.*",
+
+    # ML categorization
+    "scikit-learn==1.6.*",
+    "joblib==1.4.*",
+
+    # Validation
+    "pydantic==2.10.*",
+    "pydantic-settings==2.7.*",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest==8.3.*",
+    "pytest-asyncio==0.24.*",
+    "httpx==0.28.*",
+    "respx==0.21.*",
+    "bandit==1.8.*",
+    "ruff==0.8.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "S", "B"]
+ignore = ["S101"]  # allow assert in tests
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

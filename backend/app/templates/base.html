@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FinanceHub{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/app.css" nonce="{{ csp_nonce }}">
+    <script src="/static/js/htmx.min.js" nonce="{{ csp_nonce }}" defer></script>
+    <script src="/static/js/alpine.min.js" nonce="{{ csp_nonce }}" defer></script>
+</head>
+<body x-data>
+    <nav class="sidebar">
+        <div class="logo">FinanceHub</div>
+        <ul>
+            <li><a href="/">Dashboard</a></li>
+            <li><a href="/transactions">Transactions</a></li>
+            <li><a href="/categories">Categories</a></li>
+            <li><a href="/settings/banks">Banks</a></li>
+            <li><a href="/admin">Admin</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash--{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

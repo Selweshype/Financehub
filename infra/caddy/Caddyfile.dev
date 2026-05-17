@@ -1,0 +1,20 @@
+# Local development — HTTP only, no TLS
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	handle /static/* {
+		root * /srv
+		file_server
+	}
+
+	handle /healthz {
+		respond "OK" 200
+	}
+
+	reverse_proxy app:8000 {
+		header_up X-Forwarded-Proto http
+	}
+}

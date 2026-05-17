@@ -1,0 +1,56 @@
+# Secrets — never commit plaintext
+secrets/secrets.yaml
+secrets/*.dec.yaml
+secrets/*.dec.yml
+*.dec.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.mypy_cache/
+
+# uv
+.uv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.override.yml
+!docker-compose.override.yml.example
+
+# Database — never commit the live DB
+*.db
+*.db-shm
+*.db-wal
+
+# ML models — large binary, rebuilt on deploy
+backend/models/
+
+# Logs
+*.log
+logs/
+
+# Caddy local dev state
+infra/caddy/.caddy/
