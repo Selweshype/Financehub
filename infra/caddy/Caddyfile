@@ -24,11 +24,8 @@ financehub.example.com {
 	}
 
 	# All other traffic → FastAPI app
-	reverse_proxy app:8000 {
-		header_up X-Real-IP {remote_host}
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Forwarded-Proto {scheme}
-	}
+	# Caddy manages proxy headers automatically; no manual header_up overrides needed
+	reverse_proxy app:8000
 
 	# Security headers (CSP is NOT set here — FastAPI middleware injects per-request nonce)
 	header {

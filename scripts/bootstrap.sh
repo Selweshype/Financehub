@@ -32,7 +32,8 @@ fi
 
 # 4. Set up host cron for nightly backup (3 AM)
 CRON_JOB="0 3 * * * cd /opt/financehub && docker compose run --rm backup >> /var/log/financehub-backup.log 2>&1"
-(crontab -l 2>/dev/null | grep -v financehub; echo "$CRON_JOB") | crontab -
+# Remove only the exact existing entry (if present) before appending the new one
+(crontab -l 2>/dev/null | grep -Fxv "$CRON_JOB"; echo "$CRON_JOB") | crontab -
 echo "Backup cron job installed"
 
 echo ""

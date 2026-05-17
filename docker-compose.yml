@@ -20,12 +20,10 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     networks:
-      - frontend
-      - backend
+      - backend          # backend-only: caddy is the sole ingress boundary
     volumes:
       - db_data:/data
       - ml_models:/models
-      - ./backend/scripts:/scripts:ro
       - /etc/financehub/age-key.txt:/secrets/age-key.txt:ro
       - ./secrets/secrets.enc.yaml:/secrets/secrets.enc.yaml:ro
     expose:
@@ -53,7 +51,8 @@ services:
     image: caddy:2.8-alpine
     restart: unless-stopped
     networks:
-      - frontend
+      - frontend         # accepts external traffic
+      - backend          # reaches app on the backend network
     ports:
       - "80:80"
       - "443:443"
@@ -78,7 +77,9 @@ services:
           memory: 128M
 
   backup:
-    image: restic/restic:0.16.4
+    build:
+      context: ./infra/restic
+      dockerfile: Dockerfile
     restart: "no"
     networks: []
     volumes:
@@ -86,10 +87,8 @@ services:
       - restic_cache:/root/.cache/restic
       - /etc/financehub/age-key.txt:/secrets/age-key.txt:ro
       - ./secrets/secrets.enc.yaml:/secrets/secrets.enc.yaml:ro
-      - ./infra/restic/backup.sh:/backup.sh:ro
     environment:
       - SOPS_AGE_KEY_FILE=/secrets/age-key.txt
-    entrypoint: ["/bin/sh", "/backup.sh"]
     deploy:
       resources:
         limits:

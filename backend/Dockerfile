@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     gcc \
     curl \
-    wget \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,9 +20,13 @@ RUN curl -sSfL "https://github.com/getsops/sops/releases/download/v${SOPS_VERSIO
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.5.21 /uv /usr/local/bin/uv
 
+# Create non-root user
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/bash --create-home appuser
+
 WORKDIR /app
 
-# Install dependencies (cached layer)
+# Install dependencies (cached layer) — as root so uv cache is writable
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev
 
@@ -32,11 +35,14 @@ COPY app/ ./app/
 COPY scripts/ ./scripts/
 COPY alembic.ini ./
 
-RUN chmod +x /app/scripts/*.sh
+# Copy and secure entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && \
+    chmod +x /app/scripts/*.sh && \
+    chown -R appuser:appgroup /app /entrypoint.sh
 
 EXPOSE 8000
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+USER appuser
 
 ENTRYPOINT ["/entrypoint.sh"]

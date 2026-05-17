@@ -5,28 +5,40 @@ from pydantic import BaseModel
 
 
 class DatabaseConfig(BaseModel):
+    """SQLCipher database encryption key."""
+
     key: str
 
 
 class AppConfig(BaseModel):
+    """Application-level secrets (session signing key)."""
+
     secret_key: str
 
 
 class NordigenConfig(BaseModel):
+    """GoCardless Nordigen API credentials."""
+
     secret_id: str
     secret_key: str
 
 
 class TokenEncryptionConfig(BaseModel):
+    """Master key used to derive AES-GCM keys for stored bank tokens."""
+
     master_key: str
 
 
 class ResticConfig(BaseModel):
+    """Restic backup repository credentials."""
+
     password: str
     repository: str
 
 
 class Secrets(BaseModel):
+    """Validated secrets loaded from SOPS-encrypted YAML at startup."""
+
     database: DatabaseConfig
     app: AppConfig
     nordigen: NordigenConfig
@@ -38,6 +50,11 @@ _secrets: Secrets | None = None
 
 
 def load_secrets() -> Secrets:
+    """Decrypt secrets.enc.yaml via SOPS and return a validated Secrets model.
+
+    Raises RuntimeError if the age key is missing, the secrets file is absent,
+    or SOPS decryption fails. Called once during application lifespan startup.
+    """
     secrets_path = Path("/secrets/secrets.enc.yaml")
     age_key_path = Path("/secrets/age-key.txt")
 
@@ -60,6 +77,10 @@ def load_secrets() -> Secrets:
 
 
 def get_secrets() -> Secrets:
+    """Return the singleton Secrets instance loaded at startup.
+
+    Raises RuntimeError if called before the application lifespan has run.
+    """
     if _secrets is None:
         raise RuntimeError("Secrets not initialized — app not started via lifespan")
     return _secrets

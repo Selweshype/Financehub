@@ -28,7 +28,7 @@ shell: ## Open a shell in the app container
 	$(APP) /bin/bash
 
 init-db: ## Run Alembic migrations and seed categories/rules
-	$(APP) /bin/bash /scripts/init_db.sh
+	$(APP) /bin/bash /app/scripts/init_db.sh
 
 migrate: ## Run Alembic migrations only
 	$(APP) python -m alembic upgrade head

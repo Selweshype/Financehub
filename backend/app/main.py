@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 import app.config as config_module
@@ -12,7 +11,7 @@ from app.config import load_secrets
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    # Startup
+    """Load secrets and initialize services on startup; clean up on shutdown."""
     config_module._secrets = load_secrets()
     # DB init and scheduler start added in Step 2 and Step 6
     yield
@@ -21,8 +20,9 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(
     title="FinanceHub",
-    docs_url=None,    # disable public OpenAPI docs
+    docs_url=None,
     redoc_url=None,
+    openapi_url=None,   # disable /openapi.json in addition to UI routes
     lifespan=lifespan,
 )
 
@@ -31,6 +31,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 @app.middleware("http")
 async def csp_nonce_middleware(request: Request, call_next):
+    """Attach a per-request CSP nonce and set security response headers."""
     nonce = secrets.token_urlsafe(16)
     request.state.csp_nonce = nonce
     response = await call_next(request)
@@ -53,12 +54,14 @@ async def csp_nonce_middleware(request: Request, call_next):
 
 @app.get("/health", include_in_schema=False)
 async def health():
+    """Liveness probe used by Docker healthcheck."""
     return JSONResponse({"status": "ok"})
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def index(request: Request):
+    """Render the dashboard home page."""
     return templates.TemplateResponse(
         "dashboard/index.html",
-        {"request": request, "csp_nonce": request.state.csp_nonce},
+        {"request": request, "csp_nonce": request.state.csp_nonce, "messages": []},
     )

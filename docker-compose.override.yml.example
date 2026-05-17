@@ -13,7 +13,6 @@ services:
     volumes:
       - db_data:/data
       - ml_models:/models
-      - ./backend/scripts:/scripts:ro
       - ./secrets/age-key-dev.txt:/secrets/age-key.txt:ro   # local dev key
       - ./secrets/secrets.enc.yaml:/secrets/secrets.enc.yaml:ro
     ports:

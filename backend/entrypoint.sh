@@ -16,8 +16,9 @@ if [ ! -f "$SECRETS_FILE" ]; then
     exit 1
 fi
 
-# Verify sops can decrypt (fail fast before starting uvicorn)
-if ! sops --decrypt "$SECRETS_FILE" > /dev/null 2>&1; then
+# Verify sops can decrypt (fail fast before starting uvicorn).
+# Suppress decrypted output on stdout; let SOPS error messages through on stderr.
+if ! sops --decrypt "$SECRETS_FILE" > /dev/null; then
     echo "ERROR: SOPS decryption failed — check age key and secrets file" >&2
     exit 1
 fi

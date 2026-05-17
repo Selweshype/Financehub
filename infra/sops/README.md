@@ -15,7 +15,7 @@ chown root:root /etc/financehub/age-key.txt
 # Public key: age1abc123...
 ```
 
-Copy the **public key** into `/.sops.yaml` at the repo root (replace `age1REPLACEME...`).
+Copy the **public key** into `.sops.yaml` at the repo root (replace `age1REPLACEME...`).
 
 The **private key** lives at `/etc/financehub/age-key.txt` on the VPS **only**.
 Never copy it to your dev machine or commit it.
@@ -36,6 +36,10 @@ git commit -m "secrets: update encrypted secrets"
 ```
 
 ## Rotating secrets
+
+> **Run on VPS (or any host that holds the private age key).**
+> Decryption requires the private key. Do not attempt these steps on a dev
+> machine that only has the public key.
 
 ```bash
 # Decrypt → edit → re-encrypt
