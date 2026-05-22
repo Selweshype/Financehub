@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Transactions — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Transactions</h1>
+    <span style="color:var(--color-text-muted);font-size:.9rem;">{{ total }} total</span>
+</div>
+
+<!-- Filters -->
+<form method="get" action="/transactions/" class="card" style="margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+        <div>
+            <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Account</label>
+            <select name="account_id" style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+                <option value="">All accounts</option>
+                {% for acc in accounts %}
+                <option value="{{ acc.external_id }}" {% if filters.account_id == acc.external_id %}selected{% endif %}>
+                    {{ acc.bank_name or acc.account_name or acc.external_id }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Category</label>
+            <select name="category_id" style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+                <option value="">All categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.external_id }}" {% if filters.category_id == cat.external_id %}selected{% endif %}>
+                    {{ cat.icon or '' }} {{ cat.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Month</label>
+            <input
+                type="month"
+                name="month"
+                value="{{ filters.month or '' }}"
+                style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;"
+            >
+        </div>
+
+        <div>
+            <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Search</label>
+            <input
+                type="search"
+                name="search"
+                value="{{ filters.search or '' }}"
+                placeholder="Merchant, description…"
+                style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;"
+            >
+        </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:.5rem;">
+        <button type="submit" class="btn btn--primary">Filter</button>
+        <a href="/transactions/" class="btn btn--ghost">Clear</a>
+    </div>
+</form>
+
+<!-- Transactions table -->
+<div class="card" style="padding:0;overflow:hidden;">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th style="text-align:right;">Amount</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody id="transaction-rows">
+            {% for tx in transactions %}
+                {% include "transactions/_row.html" %}
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center;color:var(--color-text-muted);padding:2rem;">
+                    No transactions found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total > page_size %}
+<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}&account_id={{ filters.account_id or '' }}&category_id={{ filters.category_id or '' }}&month={{ filters.month or '' }}&search={{ filters.search or '' }}" class="btn btn--ghost">← Previous</a>
+    {% endif %}
+    <span style="align-self:center;color:var(--color-text-muted);font-size:.9rem;">
+        Page {{ page }} of {{ ((total - 1) // page_size + 1) }}
+    </span>
+    {% if page * page_size < total %}
+    <a href="?page={{ page + 1 }}&account_id={{ filters.account_id or '' }}&category_id={{ filters.category_id or '' }}&month={{ filters.month or '' }}&search={{ filters.search or '' }}" class="btn btn--ghost">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

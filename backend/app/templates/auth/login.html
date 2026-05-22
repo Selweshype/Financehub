@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Login — FinanceHub{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;margin:4rem auto;">
+    <h1 style="margin-bottom:1.5rem;">FinanceHub</h1>
+
+    <!-- Passkey (WebAuthn) login -->
+    <div x-data="webauthnLogin()" style="margin-bottom:2rem;">
+        <button
+            class="btn btn--primary"
+            style="width:100%;justify-content:center;"
+            @click="authenticate()"
+            :disabled="loading"
+        >
+            <span x-show="!loading">🔑 Sign in with Passkey</span>
+            <span x-show="loading">Authenticating…</span>
+        </button>
+        <p x-show="errorMsg" x-text="errorMsg" style="color:var(--color-danger);margin-top:.5rem;font-size:.85rem;"></p>
+    </div>
+
+    <hr style="border-color:var(--color-border);margin-bottom:1.5rem;">
+
+    <!-- TOTP fallback -->
+    <details>
+        <summary style="cursor:pointer;color:var(--color-text-muted);font-size:.9rem;margin-bottom:1rem;">Use authenticator code instead</summary>
+        <form action="/auth/totp/verify" method="post" style="margin-top:1rem;">
+            <label for="code" style="display:block;margin-bottom:.5rem;font-size:.9rem;color:var(--color-text-muted);">6-digit code</label>
+            <div style="display:flex;gap:.5rem;">
+                <input
+                    type="text"
+                    id="code"
+                    name="code"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="\d{6}"
+                    required
+                    style="flex:1;padding:.5rem .75rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);font-size:1.1rem;letter-spacing:.2em;"
+                >
+                <button type="submit" class="btn btn--primary">Verify</button>
+            </div>
+        </form>
+    </details>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+function webauthnLogin() {
+    return {
+        loading: false,
+        errorMsg: '',
+
+        async authenticate() {
+            this.loading = true;
+            this.errorMsg = '';
+            try {
+                const optResp = await fetch('/auth/webauthn/authenticate/begin');
+                const options = await optResp.json();
+
+                options.challenge = _hexToBuffer(options.challenge);
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(c => ({
+                        ...c, id: _hexToBuffer(c.id)
+                    }));
+                }
+
+                const credential = await navigator.credentials.get({ publicKey: options });
+
+                const body = {
+                    id: credential.id,
+                    rawId: _bufferToBase64url(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        authenticatorData: _bufferToBase64url(credential.response.authenticatorData),
+                        clientDataJSON: _bufferToBase64url(credential.response.clientDataJSON),
+                        signature: _bufferToBase64url(credential.response.signature),
+                        userHandle: credential.response.userHandle
+                            ? _bufferToBase64url(credential.response.userHandle) : null,
+                    }
+                };
+
+                const verResp = await fetch('/auth/webauthn/authenticate/complete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const result = await verResp.json();
+
+                if (result.redirect) {
+                    window.location.href = result.redirect;
+                } else {
+                    this.errorMsg = result.detail || 'Authentication failed.';
+                }
+            } catch (err) {
+                this.errorMsg = err.message || 'Authentication cancelled or failed.';
+            } finally {
+                this.loading = false;
+            }
+        }
+    };
+}
+
+function _hexToBuffer(hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    }
+    return bytes.buffer;
+}
+
+function _bufferToBase64url(buf) {
+    const bytes = new Uint8Array(buf);
+    let str = '';
+    bytes.forEach(b => str += String.fromCharCode(b));
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+</script>
+{% endblock %}

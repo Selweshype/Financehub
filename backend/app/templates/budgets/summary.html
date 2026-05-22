@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Budgets — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Budgets</h1>
+    <div style="display:flex;gap:.5rem;">
+        <a href="/budgets/wizard" class="btn btn--ghost">Setup Wizard</a>
+    </div>
+</div>
+
+<!-- Month selector -->
+<form method="get" action="/budgets/" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;">
+    <label style="color:var(--color-text-muted);font-size:.9rem;">Month:</label>
+    <input
+        type="month"
+        name="month"
+        value="{{ period_month }}"
+        style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;"
+        onchange="this.form.submit()"
+    >
+</form>
+
+<!-- Stats grid -->
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+    {% set total_effective = summaries | sum(attribute='effective_amount') | float %}
+    {% set total_spent = summaries | sum(attribute='spent') | float %}
+    {% set over_budget = summaries | selectattr('is_over_budget') | list | length %}
+
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Daily allowance (wants)</div>
+        <div style="font-size:1.5rem;font-weight:700;">€{{ remaining_today }}</div>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Budgets over limit</div>
+        <div style="font-size:1.5rem;font-weight:700;{% if over_budget > 0 %}color:var(--color-danger);{% endif %}">
+            {{ over_budget }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Active budgets</div>
+        <div style="font-size:1.5rem;font-weight:700;">{{ summaries | length }}</div>
+    </div>
+</div>
+
+{% if summaries %}
+<!-- Group by framework type -->
+{% for framework, label, color in [
+    ('needs', 'Needs', 'var(--color-accent)'),
+    ('wants', 'Wants', 'var(--color-warning)'),
+    ('savings', 'Savings', 'var(--color-success)'),
+    (None, 'Other', 'var(--color-text-muted)')
+] %}
+{% set group = summaries | selectattr('framework_type', 'equalto', framework) | list %}
+{% if group %}
+<div style="margin-bottom:1.5rem;">
+    <h2 style="color:{{ color }};margin-bottom:1rem;">{{ label }}</h2>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+        {% for s in group %}
+        <div
+            id="bar-{{ s.external_id }}"
+            hx-get="/budgets/_bar/{{ s.external_id }}?month={{ period_month }}"
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <!-- Loading placeholder -->
+            <div class="card">
+                <div style="display:flex;align-items:center;gap:.75rem;">
+                    <span style="font-size:1.1rem;">{{ s.category_icon }}</span>
+                    <span style="flex:1;font-weight:500;">{{ s.category_name }}</span>
+                    <span style="color:var(--color-text-muted);font-size:.85rem;">Loading…</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% else %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="color:var(--color-text-muted);margin-bottom:1rem;">No budgets set up yet.</p>
+    <a href="/budgets/wizard" class="btn btn--primary">Start the Budget Wizard</a>
+</div>
+{% endif %}
+{% endblock %}

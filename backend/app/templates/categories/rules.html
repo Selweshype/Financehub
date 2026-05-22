@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Categorization Rules — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Categorization Rules</h1>
+    <a href="/categories/" class="btn btn--ghost">← Categories</a>
+</div>
+
+<!-- Add rule form -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2>Add Rule</h2>
+    <form action="/categories/rules" method="post">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Category</label>
+                <select name="category_ext_id" required style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+                    {% for cat in categories %}
+                    <option value="{{ cat.external_id }}">{{ cat.icon or '' }} {{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Field</label>
+                <select name="field" required style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+                    <option value="creditor_name">Creditor name</option>
+                    <option value="debtor_name">Debtor name</option>
+                    <option value="remittance_information">Remittance info</option>
+                    <option value="proprietary_bank_code">Bank code</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Match type</label>
+                <select name="match_type" required style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+                    <option value="contains">Contains</option>
+                    <option value="starts_with">Starts with</option>
+                    <option value="exact">Exact</option>
+                    <option value="regex">Regex</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Pattern</label>
+                <input type="text" name="pattern" required placeholder="e.g. Albert Heijn"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+            </div>
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Priority (lower = higher priority)</label>
+                <input type="number" name="priority" value="100" min="1" max="999"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;">
+            </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--color-text-muted);margin-bottom:1rem;">
+            <input type="checkbox" name="is_case_sensitive" value="1"> Case sensitive
+        </label>
+        <button type="submit" class="btn btn--primary">Add Rule</button>
+    </form>
+</div>
+
+<!-- Rules table -->
+<div class="card" style="padding:0;overflow:hidden;">
+    <table>
+        <thead>
+            <tr>
+                <th>Priority</th>
+                <th>Category</th>
+                <th>Field</th>
+                <th>Match</th>
+                <th>Pattern</th>
+                <th>Hits</th>
+                <th>System</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rule in rules %}
+            <tr id="rule-{{ rule.external_id }}" {% if not rule.is_active %}style="opacity:.4;"{% endif %}>
+                <td style="font-weight:600;">{{ rule.priority }}</td>
+                <td>
+                    {% for cat in categories if cat.id == rule.category_id %}
+                        {{ cat.icon or '' }} {{ cat.name }}
+                    {% endfor %}
+                </td>
+                <td style="font-size:.85rem;color:var(--color-text-muted);">{{ rule.field }}</td>
+                <td style="font-size:.85rem;">{{ rule.match_type }}</td>
+                <td><code style="font-size:.85rem;">{{ rule.pattern }}</code></td>
+                <td style="color:var(--color-text-muted);">{{ rule.hit_count }}</td>
+                <td>
+                    {% if rule.is_system %}
+                    <span style="font-size:.75rem;color:var(--color-text-muted);">system</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not rule.is_system %}
+                    <button
+                        class="btn btn--danger"
+                        style="font-size:.75rem;padding:.2rem .5rem;"
+                        hx-delete="/categories/rules/{{ rule.external_id }}"
+                        hx-target="#rule-{{ rule.external_id }}"
+                        hx-swap="outerHTML"
+                        hx-confirm="Delete this rule?"
+                    >Delete</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align:center;color:var(--color-text-muted);padding:2rem;">
+                    No rules found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

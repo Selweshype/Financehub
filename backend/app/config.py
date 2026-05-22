@@ -1,3 +1,4 @@
+import os
 import subprocess
 import yaml
 from pathlib import Path
@@ -50,11 +51,26 @@ _secrets: Secrets | None = None
 
 
 def load_secrets() -> Secrets:
-    """Decrypt secrets.enc.yaml via SOPS and return a validated Secrets model.
+    """Load and return a validated Secrets model.
 
-    Raises RuntimeError if the age key is missing, the secrets file is absent,
-    or SOPS decryption fails. Called once during application lifespan startup.
+    In dev mode (FINANCEHUB_DEV_SECRETS env var set to a YAML file path),
+    the plain YAML file is loaded directly without SOPS.
+    In production, the SOPS-encrypted secrets.enc.yaml is decrypted.
+
+    Raises RuntimeError if decryption fails or required secrets are missing.
+    Called once during application lifespan startup.
     """
+    dev_secrets_path = os.environ.get("FINANCEHUB_DEV_SECRETS")
+    if dev_secrets_path:
+        p = Path(dev_secrets_path)
+        if not p.exists():
+            raise RuntimeError(
+                f"FINANCEHUB_DEV_SECRETS set but file not found: {dev_secrets_path}"
+            )
+        with open(p) as f:
+            raw = yaml.safe_load(f)
+        return Secrets(**raw)
+
     secrets_path = Path("/secrets/secrets.enc.yaml")
     age_key_path = Path("/secrets/age-key.txt")
 
