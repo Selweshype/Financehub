@@ -91,6 +91,7 @@ h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
 .flash--success { background: color-mix(in srgb, var(--color-success) 15%, transparent); color: var(--color-success); }
 .flash--error { background: color-mix(in srgb, var(--color-danger) 15%, transparent); color: var(--color-danger); }
 .flash--warning { background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-warning); }
+.flash--info { background: color-mix(in srgb, var(--color-accent) 12%, transparent); color: var(--color-text); border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent); }
 
 /* Cards */
 .card {
@@ -230,6 +231,20 @@ th { font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); text-t
     background: var(--color-accent);
     color: #fff;
 }
+
+/* ------------------------------------------------------------------ */
+/* Savings goals grid                                                   */
+/* ------------------------------------------------------------------ */
+.goal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.goal-card { transition: box-shadow 0.15s; }
+.goal-card:hover { box-shadow: 0 0 0 1px var(--color-accent); }
+
+[x-cloak] { display: none !important; }
 
 /* ------------------------------------------------------------------ */
 /* HTMX loading indicator                                               */

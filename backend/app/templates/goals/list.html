@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Savings Goals — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Savings Goals</h1>
+    <div style="display:flex;gap:.5rem;">
+        <a href="/goals/emergency-fund" class="btn btn--ghost">Emergency Fund</a>
+        <a href="/goals/create" class="btn btn--primary">+ New Goal</a>
+    </div>
+</div>
+
+<!-- SMarT salary nudge — lazy-loaded via HTMX -->
+<div
+    hx-get="/goals/_smart-nudge"
+    hx-trigger="load"
+    hx-swap="outerHTML"
+></div>
+
+<!-- Stats -->
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Total saved</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--color-success);">€{{ total_saved }}</div>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Total target</div>
+        <div style="font-size:1.5rem;font-weight:700;">€{{ total_target }}</div>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Active goals</div>
+        <div style="font-size:1.5rem;font-weight:700;">{{ active_goals | length }}</div>
+    </div>
+</div>
+
+{% if active_goals %}
+<div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.75rem;">In progress</div>
+<div class="goal-grid" style="margin-bottom:2rem;">
+    {% for goal in active_goals %}
+    {% include "goals/_goal_card.html" %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if completed_goals %}
+<div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.75rem;">Completed</div>
+<div class="goal-grid" style="opacity:.65;">
+    {% for goal in completed_goals %}
+    {% include "goals/_goal_card.html" %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not goals %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="color:var(--color-text-muted);margin-bottom:1.25rem;">No savings goals yet. Start with an emergency fund or create a custom goal.</p>
+    <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+        <a href="/goals/emergency-fund" class="btn btn--ghost">Build Emergency Fund</a>
+        <a href="/goals/create" class="btn btn--primary">Create Goal</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
