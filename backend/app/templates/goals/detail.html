@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ goal.name }} — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">{{ goal.name }}</h1>
+    <a href="/goals/" class="btn btn--ghost">← Goals</a>
+</div>
+
+<!-- Progress hero -->
+<div class="card" style="margin-bottom:1.5rem;">
+    {% set pct_float = goal.pct | float %}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.75rem;">
+        <div style="font-size:2rem;font-weight:700;color:var(--color-success);">€{{ goal.current_amount }}</div>
+        <div style="color:var(--color-text-muted);">of €{{ goal.target_amount }} target</div>
+    </div>
+
+    <div style="height:12px;background:var(--color-border);border-radius:6px;overflow:hidden;margin-bottom:.5rem;">
+        <div style="height:100%;width:{{ [pct_float, 100] | min }}%;
+            background:{% if pct_float >= 100 %}var(--color-success){% elif pct_float >= 80 %}var(--color-warning){% else %}var(--color-accent){% endif %};
+            border-radius:6px;transition:width .4s ease;"></div>
+    </div>
+    <div style="font-size:.85rem;color:var(--color-text-muted);">{{ goal.pct }}% of target saved</div>
+
+    {% if goal.is_completed %}
+    <div style="margin-top:1rem;padding:.75rem;background:color-mix(in srgb,var(--color-success) 10%,transparent);border-radius:var(--radius);color:var(--color-success);font-weight:600;">
+        Goal completed!
+    </div>
+    {% endif %}
+</div>
+
+<!-- Detail stats -->
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Still needed</div>
+        <div style="font-size:1.3rem;font-weight:700;">
+            {% set remaining = goal.target_amount | float - goal.current_amount | float %}
+            €{{ "%.2f" | format(remaining | abs) }}
+        </div>
+    </div>
+    {% if goal.required_monthly %}
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Monthly saving needed</div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--color-success);">€{{ goal.required_monthly }}</div>
+    </div>
+    {% endif %}
+    {% if goal.target_date %}
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Target date</div>
+        <div style="font-size:1.3rem;font-weight:700;">
+            {{ goal.target_date }}
+            {% if goal.days_remaining is not none %}
+            <div style="font-size:.8rem;font-weight:400;color:
+                {% if goal.days_remaining < 0 %}var(--color-danger){% elif goal.days_remaining <= 30 %}var(--color-warning){% else %}var(--color-text-muted){% endif %};">
+                {% if goal.days_remaining < 0 %}{{ goal.days_remaining | abs }} days overdue
+                {% elif goal.days_remaining == 0 %}Due today
+                {% else %}{{ goal.days_remaining }} days remaining
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Goal info -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="margin-bottom:.75rem;">Details</h2>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:.5rem 1.5rem;font-size:.9rem;">
+        <span style="color:var(--color-text-muted);">Type</span>
+        <span>{{ goal.goal_type | replace('_', ' ') | title }}</span>
+        {% if goal.notes %}
+        <span style="color:var(--color-text-muted);">Notes</span>
+        <span>{{ goal.notes }}</span>
+        {% endif %}
+        <span style="color:var(--color-text-muted);">Created</span>
+        <span style="color:var(--color-text-muted);">{{ goal.created_at | int | string }}</span>
+    </div>
+</div>
+
+<!-- Contribute form -->
+{% if not goal.is_completed %}
+<div class="card" x-data="{ showForm: false }">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;">Record a contribution</h2>
+        <button class="btn btn--primary" style="font-size:.85rem;" @click="showForm = !showForm">
+            + Contribute
+        </button>
+    </div>
+
+    <div x-show="showForm" x-cloak style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--color-border);">
+        <form
+            hx-post="/goals/{{ goal.external_id }}/contribute"
+            hx-target="#goal-{{ goal.external_id }}"
+            hx-swap="outerHTML"
+            style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;"
+        >
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Amount (€)</label>
+                <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="0.00"
+                    style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;width:180px;"
+                >
+            </div>
+            <button type="submit" class="btn btn--primary">Save contribution</button>
+            <button type="button" class="btn btn--ghost" @click="showForm = false">Cancel</button>
+        </form>
+        <p style="font-size:.78rem;color:var(--color-text-muted);margin-top:.5rem;">
+            This records the contribution manually. If you linked an account, the balance updates automatically on sync.
+        </p>
+    </div>
+
+    <!-- HTMX swap target for inline card refresh on detail page -->
+    <div id="goal-{{ goal.external_id }}"></div>
+</div>
+{% endif %}
+
+<!-- Danger zone -->
+<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--color-border);">
+    <button
+        class="btn btn--danger"
+        hx-delete="/goals/{{ goal.external_id }}"
+        hx-confirm="Delete '{{ goal.name }}'? This cannot be undone."
+        hx-push-url="/goals/"
+        onclick="window.location='/goals/'"
+    >Delete goal</button>
+</div>
+{% endblock %}

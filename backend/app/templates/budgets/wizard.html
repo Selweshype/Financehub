@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Budget Wizard — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Budget Wizard</h1>
+    <a href="/budgets/" class="btn btn--ghost">← Budgets</a>
+</div>
+
+<!-- Step indicator -->
+<div class="wizard-step" style="margin-bottom:2rem;">
+    <div class="wizard-step__item wizard-step__item--active">
+        <span class="wizard-step__number">1</span>
+        <span>Set Budgets</span>
+    </div>
+</div>
+
+{% if suggestion.avg_income and suggestion.avg_income != '0' %}
+<div class="card" style="margin-bottom:1.5rem;border-left:3px solid var(--color-accent);">
+    <h2>50/30/20 Suggestion</h2>
+    <p style="color:var(--color-text-muted);font-size:.9rem;margin-bottom:1rem;">
+        Based on your average monthly income of <strong>€{{ suggestion.avg_income }}</strong>:
+    </p>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Needs (50%)</div>
+            <div style="font-size:1.3rem;font-weight:700;color:var(--color-accent);">€{{ suggestion.needs }}</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Wants (30%)</div>
+            <div style="font-size:1.3rem;font-weight:700;color:var(--color-warning);">€{{ suggestion.wants }}</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Savings (20%)</div>
+            <div style="font-size:1.3rem;font-weight:700;color:var(--color-success);">€{{ suggestion.savings }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<form action="/budgets/wizard" method="post" x-data="{ total: 0 }">
+    <!-- Needs -->
+    {% set needs_cats = categories | selectattr("framework_type", "equalto", "needs") | list %}
+    {% if needs_cats %}
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="color:var(--color-accent);">Needs (50%)</h2>
+        <p style="color:var(--color-text-muted);font-size:.85rem;margin-bottom:1rem;">
+            Essential expenses — housing, groceries, utilities, transport, healthcare.
+        </p>
+        {% for cat in needs_cats %}
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;">
+            <span style="width:28px;text-align:center;font-size:1.1rem;">{{ cat.icon or '?' }}</span>
+            <span style="flex:1;font-weight:500;">{{ cat.name }}</span>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="color:var(--color-text-muted);">€</span>
+                <input
+                    type="number"
+                    name="amount_{{ cat.id }}"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value="{{ suggestion.per_category.get(cat.id, '') }}"
+                    style="width:110px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;text-align:right;"
+                >
+            </div>
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--color-text-muted);">
+                <input type="checkbox" name="rollover_{{ cat.id }}" value="1"> Rollover
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Wants -->
+    {% set wants_cats = categories | selectattr("framework_type", "equalto", "wants") | list %}
+    {% if wants_cats %}
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="color:var(--color-warning);">Wants (30%)</h2>
+        <p style="color:var(--color-text-muted);font-size:.85rem;margin-bottom:1rem;">
+            Discretionary spending — dining out, entertainment, shopping, subscriptions.
+        </p>
+        {% for cat in wants_cats %}
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;">
+            <span style="width:28px;text-align:center;font-size:1.1rem;">{{ cat.icon or '?' }}</span>
+            <span style="flex:1;font-weight:500;">{{ cat.name }}</span>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="color:var(--color-text-muted);">€</span>
+                <input
+                    type="number"
+                    name="amount_{{ cat.id }}"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value="{{ suggestion.per_category.get(cat.id, '') }}"
+                    style="width:110px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;text-align:right;"
+                >
+            </div>
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--color-text-muted);">
+                <input type="checkbox" name="rollover_{{ cat.id }}" value="1"> Rollover
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Savings -->
+    {% set savings_cats = categories | selectattr("framework_type", "equalto", "savings") | list %}
+    {% if savings_cats %}
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="color:var(--color-success);">Savings (20%)</h2>
+        {% for cat in savings_cats %}
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;">
+            <span style="width:28px;text-align:center;font-size:1.1rem;">{{ cat.icon or '?' }}</span>
+            <span style="flex:1;font-weight:500;">{{ cat.name }}</span>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="color:var(--color-text-muted);">€</span>
+                <input
+                    type="number"
+                    name="amount_{{ cat.id }}"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value="{{ suggestion.per_category.get(cat.id, '') }}"
+                    style="width:110px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;text-align:right;"
+                >
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+        <a href="/budgets/" class="btn btn--ghost">Cancel</a>
+        <button type="submit" class="btn btn--primary">Save Budgets</button>
+    </div>
+</form>
+{% endblock %}

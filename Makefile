@@ -48,3 +48,11 @@ sync: ## Trigger a manual transaction sync
 
 ps: ## Show running containers
 	$(COMPOSE) ps
+
+download-static: ## Download htmx 2.0.4 and Alpine.js 3.14 into static/js/
+	@mkdir -p static/js
+	@echo "Downloading htmx 2.0.4..."
+	curl -fsSL https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js -o static/js/htmx.min.js
+	@echo "Downloading Alpine.js 3.14.1..."
+	curl -fsSL https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js -o static/js/alpine.min.js
+	@echo "Done. Static assets saved to static/js/"

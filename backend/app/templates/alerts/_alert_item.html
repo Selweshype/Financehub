@@ -1,0 +1,43 @@
+<div class="alert-card {% if not alert.is_read %}alert-card--unread{% endif %}" id="alert-{{ alert.external_id }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;">
+        <div style="flex:1;">
+            <!-- Type badge -->
+            <span class="alert-type-badge alert-type-badge--{{ alert.alert_type }}">
+                {% if alert.alert_type == 'budget_exceeded' %}Over budget
+                {% elif alert.alert_type == 'budget_warning_80' %}Budget warning
+                {% elif alert.alert_type == 'unusual_spend' %}Large spend
+                {% elif alert.alert_type == 'goal_milestone' %}Goal milestone
+                {% else %}{{ alert.alert_type | replace('_', ' ') }}
+                {% endif %}
+            </span>
+
+            <div style="font-weight:{% if not alert.is_read %}600{% else %}400{% endif %};margin-top:.4rem;margin-bottom:.25rem;">
+                {{ alert.title }}
+            </div>
+            <div style="font-size:.875rem;color:var(--color-text-muted);line-height:1.5;">
+                {{ alert.body }}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:.4rem;flex-shrink:0;">
+            {% if not alert.is_read %}
+            <button
+                class="btn btn--ghost"
+                style="font-size:.72rem;padding:.2rem .45rem;"
+                hx-post="/alerts/{{ alert.external_id }}/read"
+                hx-target="#alert-{{ alert.external_id }}"
+                hx-swap="outerHTML"
+            >Mark read</button>
+            {% endif %}
+            <button
+                class="btn btn--ghost"
+                style="font-size:.72rem;padding:.2rem .45rem;color:var(--color-text-muted);"
+                hx-post="/alerts/{{ alert.external_id }}/dismiss"
+                hx-target="#alert-{{ alert.external_id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Dismiss this alert?"
+            >Dismiss</button>
+        </div>
+    </div>
+</div>

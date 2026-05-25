@@ -1,0 +1,47 @@
+<tr id="tx-{{ tx.external_id }}">
+    <td style="color:var(--color-text-muted);font-size:.85rem;white-space:nowrap;">
+        {{ tx.booking_date or '—' }}
+    </td>
+    <td>
+        <div style="font-weight:500;">{{ tx.creditor_name or tx.debtor_name or '—' }}</div>
+        {% if tx.remittance_information %}
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-top:.1rem;">
+            {{ tx.remittance_information[:80] }}{% if tx.remittance_information|length > 80 %}…{% endif %}
+        </div>
+        {% endif %}
+    </td>
+    <td style="text-align:right;font-weight:600;white-space:nowrap;">
+        {% set amt = tx.amount | float %}
+        {% if amt < 0 %}
+        <span style="color:var(--color-danger);">{{ "%.2f"|format(amt) }} {{ tx.currency }}</span>
+        {% else %}
+        <span style="color:var(--color-success);">+{{ "%.2f"|format(amt) }} {{ tx.currency }}</span>
+        {% endif %}
+    </td>
+    <td>
+        <form
+            hx-post="/transactions/{{ tx.external_id }}/categorize"
+            hx-target="#tx-{{ tx.external_id }}"
+            hx-swap="outerHTML"
+            style="display:flex;align-items:center;gap:.5rem;"
+        >
+            <select
+                name="category_id"
+                style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.3rem .5rem;font-size:.85rem;max-width:160px;"
+                onchange="this.form.requestSubmit()"
+            >
+                <option value="__none__" {% if not tx.category_id %}selected{% endif %}>— Uncategorised —</option>
+                {% for cat in categories %}
+                <option value="{{ cat.external_id }}" {% if tx.category_id == cat.id %}selected{% endif %}>
+                    {{ cat.icon or '' }} {{ cat.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if tx.categorization_source == 'rule' %}
+            <span title="Auto-categorized" style="font-size:.75rem;color:var(--color-text-muted);">auto</span>
+            {% elif tx.categorization_source == 'manual' %}
+            <span title="Manually categorized" style="font-size:.75rem;color:var(--color-accent);">manual</span>
+            {% endif %}
+        </form>
+    </td>
+</tr>

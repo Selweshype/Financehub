@@ -2,5 +2,81 @@
 {% block title %}Dashboard — FinanceHub{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
-<p>FinanceHub is running. Bank connections and transaction sync coming in Step 5.</p>
+
+<!-- Summary stats -->
+<div class="stat-grid" style="margin-bottom:2rem;">
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Connected accounts</div>
+        <div style="font-size:1.5rem;font-weight:700;">{{ account_count }}</div>
+        <a href="/accounts/" style="font-size:.8rem;color:var(--color-accent);text-decoration:none;display:block;margin-top:.25rem;">View accounts →</a>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Total transactions</div>
+        <div style="font-size:1.5rem;font-weight:700;">{{ transaction_count }}</div>
+        <a href="/transactions/" style="font-size:.8rem;color:var(--color-accent);text-decoration:none;display:block;margin-top:.25rem;">View all →</a>
+    </div>
+    <div class="stat-card">
+        <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">{{ current_month }} cash flow</div>
+        {% if total_flow is not none %}
+        {% set flow = total_flow | float %}
+        <div style="font-size:1.5rem;font-weight:700;{% if flow < 0 %}color:var(--color-danger);{% elif flow > 0 %}color:var(--color-success);{% endif %}">
+            {% if flow > 0 %}+{% endif %}€{{ "%.2f" | format(flow) }}
+        </div>
+        {% else %}
+        <div style="font-size:1.5rem;font-weight:700;color:var(--color-text-muted);">—</div>
+        {% endif %}
+        <a href="/transactions/?month={{ current_month }}" style="font-size:.8rem;color:var(--color-accent);text-decoration:none;display:block;margin-top:.25rem;">View transactions →</a>
+    </div>
+</div>
+
+<!-- Quick links -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem;">
+    <a href="/budgets/" class="card" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:1.5rem;">💰</span>
+        <div>
+            <div style="font-weight:600;">Budgets</div>
+            <div style="font-size:.8rem;color:var(--color-text-muted);">Track spending</div>
+        </div>
+    </a>
+    <a href="/transactions/?month={{ current_month }}" class="card" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:1.5rem;">📊</span>
+        <div>
+            <div style="font-weight:600;">This month</div>
+            <div style="font-size:.8rem;color:var(--color-text-muted);">{{ current_month }} transactions</div>
+        </div>
+    </a>
+    <a href="/nordigen/connect" class="card" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:1.5rem;">🏦</span>
+        <div>
+            <div style="font-weight:600;">Connect bank</div>
+            <div style="font-size:.8rem;color:var(--color-text-muted);">Add via Nordigen</div>
+        </div>
+    </a>
+    <a href="/categories/rules" class="card" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:1.5rem;">🏷️</span>
+        <div>
+            <div style="font-weight:600;">Rules</div>
+            <div style="font-size:.8rem;color:var(--color-text-muted);">Auto-categorize</div>
+        </div>
+    </a>
+</div>
+
+<!-- Sync button -->
+<div class="card">
+    <h2>Manual Sync</h2>
+    <p style="color:var(--color-text-muted);font-size:.9rem;margin-bottom:1rem;">
+        Transactions sync automatically every 6 hours. Click below to trigger an immediate sync.
+    </p>
+    <button
+        class="btn btn--primary"
+        hx-post="/sync/trigger"
+        hx-target="#sync-result"
+        hx-swap="innerHTML"
+        hx-indicator="#sync-spinner"
+    >
+        Sync Now
+    </button>
+    <span id="sync-spinner" class="htmx-indicator" style="margin-left:.5rem;color:var(--color-text-muted);">Syncing…</span>
+    <div id="sync-result" style="margin-top:.75rem;font-size:.9rem;"></div>
+</div>
 {% endblock %}

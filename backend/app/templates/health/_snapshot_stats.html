@@ -1,0 +1,63 @@
+<!-- Snapshot KPI cards — HTMX target for outerHTML swap after refresh -->
+<div id="snapshot-stats">
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:1.5rem;">
+
+        <!-- Net Worth -->
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Net Worth</div>
+            {% set nw = net_worth | float %}
+            <div style="font-size:1.4rem;font-weight:700;{% if nw < 0 %}color:var(--color-danger);{% elif nw > 0 %}color:var(--color-success);{% endif %}">
+                {% if nw >= 0 %}€{{ "%.0f" | format(nw) }}{% else %}-€{{ "%.0f" | format(nw | abs) }}{% endif %}
+            </div>
+            <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.2rem;">assets − liabilities</div>
+        </div>
+
+        <!-- Assets -->
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Total Assets</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--color-success);">€{{ "%.0f" | format(total_assets | float) }}</div>
+            <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.2rem;">linked accounts</div>
+        </div>
+
+        <!-- Liabilities -->
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Total Liabilities</div>
+            <div style="font-size:1.4rem;font-weight:700;{% if total_liabilities | float > 0 %}color:var(--color-danger);{% endif %}">€{{ "%.0f" | format(total_liabilities | float) }}</div>
+            <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.2rem;">debts &amp; loans</div>
+        </div>
+
+        <!-- Cash flow this month -->
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">{{ current_month }} cash flow</div>
+            {% if monthly_cash_flow is not none %}
+            {% set cf = monthly_cash_flow | float %}
+            <div style="font-size:1.4rem;font-weight:700;{% if cf < 0 %}color:var(--color-danger);{% elif cf > 0 %}color:var(--color-success);{% endif %}">
+                {% if cf >= 0 %}+{% endif %}€{{ "%.0f" | format(cf) }}
+            </div>
+            {% else %}
+            <div style="font-size:1.4rem;font-weight:700;color:var(--color-text-muted);">—</div>
+            {% endif %}
+            <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.2rem;">income − expenses</div>
+        </div>
+
+        <!-- Budget score -->
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Budget score</div>
+            {% if budget_score is not none %}
+            <div style="font-size:1.4rem;font-weight:700;{% if budget_score >= 80 %}color:var(--color-success);{% elif budget_score >= 50 %}color:var(--color-warning);{% else %}color:var(--color-danger);{% endif %}">
+                {{ budget_score }}<span style="font-size:.9rem;font-weight:400;">/100</span>
+            </div>
+            <div style="height:4px;background:var(--color-border);border-radius:2px;margin-top:.4rem;overflow:hidden;">
+                <div style="height:100%;width:{{ budget_score }}%;background:{% if budget_score >= 80 %}var(--color-success){% elif budget_score >= 50 %}var(--color-warning){% else %}var(--color-danger){% endif %};border-radius:2px;transition:width .3s;"></div>
+            </div>
+            {% else %}
+            <div style="font-size:1.4rem;font-weight:700;color:var(--color-text-muted);">—</div>
+            <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.2rem;">generate snapshot first</div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% if just_generated is defined and just_generated %}
+    <div class="flash flash--success" style="margin-bottom:1.5rem;">Snapshot generated for {{ current_month }}.</div>
+    {% endif %}
+</div>

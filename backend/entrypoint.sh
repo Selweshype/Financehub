@@ -24,6 +24,19 @@ if ! sops --decrypt "$SECRETS_FILE" > /dev/null; then
 fi
 
 echo "Secrets decryption: OK"
+
+# Extract DB key from secrets and export for Alembic / uvicorn
+DECRYPTED=$(sops --decrypt "$SECRETS_FILE")
+export FINANCEHUB_DB_KEY=$(echo "$DECRYPTED" | python3 -c "import sys, yaml; d = yaml.safe_load(sys.stdin); print(d['database']['key'])")
+export FINANCEHUB_DB_PATH="${FINANCEHUB_DB_PATH:-/data/financehub.db}"
+
+# Ensure data directory exists
+mkdir -p "$(dirname "$FINANCEHUB_DB_PATH")"
+
+echo "Running Alembic migrations..."
+cd /app && uv run python -m alembic upgrade head
+echo "Migrations: OK"
+
 echo "Starting FinanceHub..."
 
 exec uv run uvicorn app.main:app \

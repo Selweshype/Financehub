@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}TOTP Setup — FinanceHub{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:3rem auto;">
+    <h1>Set up Authenticator</h1>
+    <p style="color:var(--color-text-muted);margin-bottom:1.5rem;">
+        Scan the QR code below with your authenticator app (e.g. Aegis, Google Authenticator).
+        Then enter the 6-digit code to confirm setup.
+    </p>
+
+    <div style="text-align:center;margin-bottom:1.5rem;">
+        <img
+            src="data:image/png;base64,{{ qr_b64 }}"
+            alt="TOTP QR code"
+            style="width:200px;height:200px;border:4px solid #fff;border-radius:4px;"
+        >
+    </div>
+
+    <details style="margin-bottom:1.5rem;">
+        <summary style="cursor:pointer;color:var(--color-text-muted);font-size:.85rem;">
+            Can't scan? Enter manually
+        </summary>
+        <code style="display:block;margin-top:.75rem;padding:.5rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);font-size:.85rem;word-break:break-all;">
+            {{ secret }}
+        </code>
+    </details>
+
+    <form action="/auth/totp/activate" method="post">
+        <input type="hidden" name="secret" value="{{ secret }}">
+
+        <label for="code" style="display:block;margin-bottom:.5rem;font-size:.9rem;color:var(--color-text-muted);">
+            Confirm with 6-digit code
+        </label>
+        <div style="display:flex;gap:.5rem;">
+            <input
+                type="text"
+                id="code"
+                name="code"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="\d{6}"
+                required
+                autofocus
+                style="flex:1;padding:.5rem .75rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);font-size:1.1rem;letter-spacing:.2em;"
+            >
+            <button type="submit" class="btn btn--primary">Activate</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

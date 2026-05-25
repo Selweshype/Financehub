@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Connect Bank — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Connect Bank</h1>
+    <a href="/accounts/" class="btn btn--ghost">← Accounts</a>
+</div>
+
+{% if error %}
+<div class="flash flash--error" style="margin-bottom:1.5rem;">
+    Could not connect to Nordigen: {{ error }}
+</div>
+{% endif %}
+
+<!-- Current connections -->
+{% if requisitions %}
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2>Current Connections</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Bank</th>
+                <th>Status</th>
+                <th>Connected</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requisitions %}
+            {% if req.status != 'DELETED' %}
+            <tr>
+                <td>{{ req.bank_name or req.institution_id }}</td>
+                <td>
+                    <span style="font-size:.8rem;padding:.2rem .5rem;border-radius:4px;
+                        {% if req.status == 'LINKED' %}background:color-mix(in srgb,var(--color-success) 15%,transparent);color:var(--color-success);
+                        {% else %}background:color-mix(in srgb,var(--color-warning) 15%,transparent);color:var(--color-warning);
+                        {% endif %}">
+                        {{ req.status }}
+                    </span>
+                </td>
+                <td style="color:var(--color-text-muted);font-size:.85rem;">
+                    {% if req.linked_at %}{{ req.linked_at }}{% else %}Pending{% endif %}
+                </td>
+                <td>
+                    <form action="/nordigen/disconnect/{{ req.external_id }}" method="post" style="display:inline;">
+                        <button
+                            type="submit"
+                            class="btn btn--danger"
+                            style="font-size:.75rem;padding:.2rem .5rem;"
+                            onclick="return confirm('Disconnect this bank? Existing transactions will be kept.')"
+                        >Disconnect</button>
+                    </form>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Institution list -->
+{% if institutions %}
+<div class="card">
+    <h2>Add a bank</h2>
+    <p style="color:var(--color-text-muted);margin-bottom:1rem;font-size:.9rem;">
+        Select your bank to start the secure connection via GoCardless Open Banking.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;">
+        {% for inst in institutions %}
+        <form action="/nordigen/connect/{{ inst.id }}" method="post">
+            <button type="submit" class="btn btn--ghost" style="width:100%;justify-content:flex-start;gap:.75rem;padding:.75rem;">
+                {% if inst.logo %}
+                <img src="{{ inst.logo }}" alt="{{ inst.name }}" style="width:28px;height:28px;object-fit:contain;border-radius:4px;">
+                {% endif %}
+                <span>{{ inst.name }}</span>
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+{% elif not error %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="color:var(--color-text-muted);">No institutions available. Check your Nordigen API credentials.</p>
+</div>
+{% endif %}
+{% endblock %}

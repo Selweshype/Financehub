@@ -1,0 +1,39 @@
+<div id="bar-{{ budget.external_id }}" class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            {% if category %}
+            <span style="font-size:1.1rem;">{{ category.icon or '' }}</span>
+            <span style="font-weight:500;">{{ category.name }}</span>
+            {% endif %}
+        </div>
+        <div style="font-size:.85rem;color:var(--color-text-muted);">
+            €{{ spent }} / €{{ effective }}
+        </div>
+    </div>
+
+    <div class="budget-bar {% if is_over %}budget-bar--over{% elif is_warning %}budget-bar--warning{% endif %}">
+        <div
+            class="budget-bar__fill"
+            style="width:{{ [pct, 100] | min }}%;"
+        ></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;margin-top:.4rem;">
+        <span style="font-size:.75rem;color:{% if is_over %}var(--color-danger){% elif is_warning %}var(--color-warning){% else %}var(--color-text-muted){% endif %};">
+            {{ "%.0f"|format(pct) }}%
+            {% if is_over %} — Over budget!
+            {% elif is_warning %} — Approaching limit
+            {% endif %}
+        </span>
+        <div style="display:flex;gap:.4rem;">
+            <button
+                class="btn btn--ghost"
+                style="font-size:.75rem;padding:.15rem .4rem;"
+                hx-delete="/budgets/{{ budget.external_id }}"
+                hx-target="#bar-{{ budget.external_id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Remove this budget?"
+            >Remove</button>
+        </div>
+    </div>
+</div>
