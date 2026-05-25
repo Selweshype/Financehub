@@ -1,0 +1,48 @@
+{% if svg.has_data %}
+<div>
+    <div style="font-size:1.5rem;font-weight:700;margin-bottom:.5rem;
+        {% set nw_val = svg.latest | replace(',', '') | float %}
+        {% if nw_val < 0 %}color:var(--color-danger);{% else %}color:var(--color-success);{% endif %}">
+        €{{ svg.latest }}
+    </div>
+    <svg viewBox="0 0 600 200" role="img" aria-label="Net worth trend" style="width:100%;height:auto;display:block;">
+        <!-- Zero baseline -->
+        <line x1="40" y1="{{ svg.baseline_y }}" x2="560" y2="{{ svg.baseline_y }}"
+              stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <!-- Fill area under the line -->
+        <linearGradient id="nw-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="{{ 'var(--color-success)' if svg.positive else 'var(--color-danger)' }}" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="{{ 'var(--color-success)' if svg.positive else 'var(--color-danger)' }}" stop-opacity="0"/>
+        </linearGradient>
+        <polygon
+            points="{{ svg.points }} {{ svg.points.split(' ')[-1].split(',')[0] }},{{ svg.baseline_y }} {{ svg.points.split(' ')[0].split(',')[0] }},{{ svg.baseline_y }}"
+            fill="url(#nw-fill)"
+        />
+
+        <!-- Trend line -->
+        <polyline
+            points="{{ svg.points }}"
+            fill="none"
+            stroke="{{ 'var(--color-success)' if svg.positive else 'var(--color-danger)' }}"
+            stroke-width="2"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+        />
+
+        <!-- X-axis labels -->
+        {% for lbl in svg.labels %}
+        <text x="{{ lbl.x }}" y="196" text-anchor="middle"
+              fill="var(--color-text-muted)" font-size="10" font-family="inherit">{{ lbl.label }}</text>
+        {% endfor %}
+    </svg>
+    <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.25rem;">
+        Net worth = total account balances − liabilities. Updated on each sync.
+    </div>
+</div>
+{% else %}
+<div style="text-align:center;padding:2rem 0;color:var(--color-text-muted);">
+    <p style="margin-bottom:.75rem;">No net worth history yet.</p>
+    <p style="font-size:.85rem;">Click <strong>Refresh data</strong> to generate your first snapshot, or sync your accounts.</p>
+</div>
+{% endif %}

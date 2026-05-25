@@ -233,6 +233,34 @@ th { font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); text-t
 }
 
 /* ------------------------------------------------------------------ */
+/* Financial health charts                                              */
+/* ------------------------------------------------------------------ */
+.chart-container { overflow-x: auto; }
+.chart-container svg { width: 100%; height: auto; display: block; }
+
+/* Liability type badges */
+.liability-badge {
+    font-size: .7rem;
+    padding: .15rem .4rem;
+    border-radius: 3px;
+    background: var(--color-border);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+.liability-badge--credit_card {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: var(--color-danger);
+}
+.liability-badge--mortgage {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+}
+.liability-badge--student_loan {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+}
+
+/* ------------------------------------------------------------------ */
 /* Savings goals grid                                                   */
 /* ------------------------------------------------------------------ */
 .goal-grid {

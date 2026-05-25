@@ -70,7 +70,7 @@ async def csp_nonce_middleware(request: Request, call_next):
 # Routers
 # ------------------------------------------------------------------ #
 
-from app.routers import auth, accounts, transactions, categories, nordigen, sync, budgets, goals  # noqa: E402
+from app.routers import auth, accounts, transactions, categories, nordigen, sync, budgets, goals, health  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(accounts.router)
@@ -80,6 +80,7 @@ app.include_router(nordigen.router)
 app.include_router(sync.router)
 app.include_router(budgets.router)
 app.include_router(goals.router)
+app.include_router(health.router)
 
 
 # ------------------------------------------------------------------ #
@@ -101,8 +102,8 @@ if os.path.isdir(_STATIC_DIR):
 # Core routes
 # ------------------------------------------------------------------ #
 
-@app.get("/health", include_in_schema=False)
-async def health():
+@app.get("/liveness", include_in_schema=False)
+async def liveness():
     """Liveness probe used by Docker healthcheck."""
     return JSONResponse({"status": "ok"})
 

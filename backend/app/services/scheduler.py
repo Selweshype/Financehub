@@ -15,7 +15,7 @@ _scheduler: AsyncIOScheduler | None = None
 
 
 async def _sync_job() -> None:
-    """Background task that syncs all Nordigen accounts."""
+    """Background task that syncs all Nordigen accounts and refreshes snapshots."""
     try:
         from app.services.sync_service import sync_all
 
@@ -32,6 +32,27 @@ async def _sync_job() -> None:
             logger.warning("Sync error for account_id=%s: %s", r.account_id, r.error_message)
     except Exception as exc:
         logger.exception("Unhandled error in scheduled sync job: %s", exc)
+
+    # Regenerate monthly + net worth snapshots after every sync
+    try:
+        from datetime import date
+        from app.database import get_db
+        from app.services.snapshot_service import (
+            compute_monthly_snapshot,
+            compute_net_worth_snapshot,
+        )
+
+        period_month = date.today().strftime("%Y-%m")
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            compute_monthly_snapshot(db, period_month)
+            compute_net_worth_snapshot(db)
+            logger.info("Snapshots refreshed for %s", period_month)
+        finally:
+            db.close()
+    except Exception as snap_exc:
+        logger.warning("Post-sync snapshot generation failed: %s", snap_exc)
 
 
 def start_scheduler() -> None:
