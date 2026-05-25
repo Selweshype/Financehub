@@ -18,6 +18,16 @@
             <li><a href="/budgets/">Budgets</a></li>
             <li><a href="/goals/">Goals</a></li>
             <li><a href="/health/">Health</a></li>
+            <li>
+                <a href="/alerts/" style="display:flex;align-items:center;justify-content:space-between;">
+                    Alerts
+                    <span
+                        hx-get="/alerts/_count"
+                        hx-trigger="load"
+                        hx-swap="outerHTML"
+                    ></span>
+                </a>
+            </li>
             <li><a href="/categories/">Categories</a></li>
             <li><a href="/nordigen/connect">Banks</a></li>
         </ul>

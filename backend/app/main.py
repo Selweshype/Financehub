@@ -70,7 +70,7 @@ async def csp_nonce_middleware(request: Request, call_next):
 # Routers
 # ------------------------------------------------------------------ #
 
-from app.routers import auth, accounts, transactions, categories, nordigen, sync, budgets, goals, health  # noqa: E402
+from app.routers import auth, accounts, transactions, categories, nordigen, sync, budgets, goals, health, alerts  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(accounts.router)
@@ -81,6 +81,7 @@ app.include_router(sync.router)
 app.include_router(budgets.router)
 app.include_router(goals.router)
 app.include_router(health.router)
+app.include_router(alerts.router)
 
 
 # ------------------------------------------------------------------ #

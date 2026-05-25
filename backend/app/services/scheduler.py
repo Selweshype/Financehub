@@ -54,6 +54,29 @@ async def _sync_job() -> None:
     except Exception as snap_exc:
         logger.warning("Post-sync snapshot generation failed: %s", snap_exc)
 
+    # Run alert checks after snapshots
+    try:
+        from datetime import date as _date
+        from app.database import get_db as _get_db
+        from app.services.alert_service import (
+            check_budget_warnings,
+            check_goal_milestones,
+            check_unusual_spend,
+        )
+
+        _period_month = _date.today().strftime("%Y-%m")
+        _db_gen = _get_db()
+        _db = next(_db_gen)
+        try:
+            check_budget_warnings(_db, _period_month)
+            check_unusual_spend(_db)
+            check_goal_milestones(_db)
+            logger.info("Alert checks complete for %s", _period_month)
+        finally:
+            _db.close()
+    except Exception as alert_exc:
+        logger.warning("Alert checks failed: %s", alert_exc)
+
 
 def start_scheduler() -> None:
     """Create and start the APScheduler AsyncIOScheduler.
