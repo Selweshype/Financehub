@@ -1,0 +1,44 @@
+{# Layout for pages reachable while logged OUT: login, TOTP setup, passkey enrollment.
+
+   These deliberately do NOT extend base.html. That template's sidebar carries an
+   `hx-get="/alerts/_count"` badge, and on an unauthenticated page that request is
+   answered with a 307 to /auth/login. The browser follows the redirect
+   transparently, so htmx receives a 200 carrying the whole login page and swaps
+   it into the sidebar — leaving two stacked forms and two `#code` inputs on the
+   TOTP setup page, with the real input covered.
+
+   Showing app navigation to someone who cannot use it was wrong anyway. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FinanceHub{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/app.css" nonce="{{ csp_nonce }}">
+    {# htmx injects a <style> element for its .htmx-indicator classes on load,
+       which style-src blocks (it is a style element, not a style attribute, so
+       style-src-attr does not cover it). app.css already defines those classes,
+       so the injected copy is redundant. Turning it off is a declarative config
+       with no inline script — the CSP stays strict. #}
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
+    <script src="/static/js/htmx.min.js" nonce="{{ csp_nonce }}" defer></script>
+    {# Alpine is opt-in here too — see the note in base.html. The login page runs
+       on plain nonce'd JavaScript; the passkey enrollment page still declares
+       Alpine directives and opts in below. #}
+    {% block extra_scripts %}{% endblock %}
+</head>
+<body style="display:block;">
+    <main style="max-width:640px;margin:0 auto;padding:2rem 1rem;">
+        <div class="logo" style="text-align:center;margin-bottom:1.5rem;">FinanceHub</div>
+        {% set messages = messages | default([]) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash--{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -230,9 +230,23 @@ def require_session(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """FastAPI dependency — raises 307 redirect to /auth/login if not authenticated."""
+    """FastAPI dependency — sends unauthenticated callers to /auth/login.
+
+    A plain 307 is wrong for an htmx request. The browser follows the redirect
+    transparently, so htmx receives a 200 carrying the whole login page and
+    swaps that markup into whatever element made the request — which is how the
+    entire login page ended up injected into the sidebar's alerts badge.
+
+    For htmx requests we therefore return 401 plus HX-Redirect, which htmx turns
+    into a real full-page navigation. Ordinary navigations keep the 307.
+    """
     session = get_optional_session(request, db)
     if session is None:
+        if request.headers.get("HX-Request"):
+            raise HTTPException(
+                status_code=401,
+                headers={"HX-Redirect": "/auth/login"},
+            )
         raise HTTPException(
             status_code=307,
             headers={"Location": "/auth/login"},

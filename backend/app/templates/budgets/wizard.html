@@ -37,7 +37,7 @@
 </div>
 {% endif %}
 
-<form action="/budgets/wizard" method="post" x-data="{ total: 0 }">
+<form action="/budgets/wizard" method="post">
     <!-- Needs -->
     {% set needs_cats = categories | selectattr("framework_type", "equalto", "needs") | list %}
     {% if needs_cats %}

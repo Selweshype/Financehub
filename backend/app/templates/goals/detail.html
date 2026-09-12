@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ goal.name }} — FinanceHub{% endblock %}
+{# This page uses Alpine directives; see the note in base.html. #}
+{% block extra_scripts %}<script src="/static/js/alpine.min.js" nonce="{{ csp_nonce }}" defer></script>{% endblock %}
 {% block content %}
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
     <h1 style="margin:0;">{{ goal.name }}</h1>
@@ -126,7 +128,6 @@
         hx-delete="/goals/{{ goal.external_id }}"
         hx-confirm="Delete '{{ goal.name }}'? This cannot be undone."
         hx-push-url="/goals/"
-        onclick="window.location='/goals/'"
     >Delete goal</button>
 </div>
 {% endblock %}

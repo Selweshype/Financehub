@@ -11,13 +11,16 @@
 <!-- Month selector -->
 <form method="get" action="/budgets/" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;">
     <label style="color:var(--color-text-muted);font-size:.9rem;">Month:</label>
+    {# The onchange="this.form.submit()" that used to live on this input is an
+       inline event handler, which the CSP's script-src blocks — so changing the
+       month did nothing. A plain submit button needs no script at all. #}
     <input
         type="month"
         name="month"
         value="{{ period_month }}"
         style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;"
-        onchange="this.form.submit()"
     >
+    <button type="submit" class="btn btn--ghost" style="font-size:.85rem;">Show</button>
 </form>
 
 <!-- Stats grid -->

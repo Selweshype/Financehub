@@ -1,4 +1,4 @@
-.PHONY: dev build up down logs logs-app shell test lint backup help \
+.PHONY: dev build up down logs logs-app shell test lint backup help browser-test \
         migrate sync ps download-static check-static venv
 
 COMPOSE = docker compose
@@ -96,3 +96,6 @@ check-static: ## Fail if static/js holds placeholder stubs instead of the real l
 		{ echo "ERROR: static/js/alpine.min.js is missing or not the expected build."; \
 		  echo "       Run 'make download-static'."; exit 1; }
 	@echo "Static assets OK."
+
+browser-test: check-static ## Browser smoke test (starts a server + Chromium; slower than `make test`)
+	PYTHONPATH=backend $(PY) tests/browser_smoke.py

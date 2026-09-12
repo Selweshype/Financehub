@@ -19,16 +19,21 @@
         {% endif %}
     </td>
     <td>
+        {# hx-trigger="change" replaces an onchange="this.form.requestSubmit()"
+           attribute. Inline event handlers are script, and the CSP sets
+           script-src without 'unsafe-inline', so the browser refused to run it
+           and changing the category silently did nothing. Letting htmx bind the
+           listener keeps the strict policy intact. #}
         <form
             hx-post="/transactions/{{ tx.external_id }}/categorize"
             hx-target="#tx-{{ tx.external_id }}"
             hx-swap="outerHTML"
+            hx-trigger="change"
             style="display:flex;align-items:center;gap:.5rem;"
         >
             <select
                 name="category_id"
                 style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.3rem .5rem;font-size:.85rem;max-width:160px;"
-                onchange="this.form.requestSubmit()"
             >
                 <option value="__none__" {% if not tx.category_id %}selected{% endif %}>— Uncategorised —</option>
                 {% for cat in categories %}
