@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:0.5.21 /uv /usr/local/bin/uv
 
 WORKDIR /app
-COPY pyproject.toml uv.lock* ./
+# uv.lock is required, not optional. The previous `uv.lock*` glob let a missing
+# lockfile through to `uv sync --frozen`, which then failed with a confusing
+# error; a bare filename fails here instead, naming the actual problem.
+COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 
@@ -23,12 +26,17 @@ RUN uv sync --frozen --no-dev
 # ------------------------------------------------------------------ #
 FROM python:3.12-slim AS runtime
 
-# Runtime libraries only: libsqlcipher0 provides the shared object the
-# compiled sqlcipher3 extension links against; the -dev headers are not needed.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsqlcipher0 \
-    curl \
-    ca-certificates \
+# Runtime libraries only — the -dev headers and the compiler stay in the builder.
+# The package providing libsqlcipher.so is named libsqlcipher0 on Debian bookworm
+# (which python:3.12-slim is based on) but libsqlcipher1 on newer Ubuntu, so
+# resolve whichever this base actually offers rather than hard-coding a guess.
+RUN apt-get update && \
+    SQLCIPHER_PKG="$(apt-cache show libsqlcipher0 >/dev/null 2>&1 && echo libsqlcipher0 || echo libsqlcipher1)" && \
+    echo "Using runtime package: ${SQLCIPHER_PKG}" && \
+    apt-get install -y --no-install-recommends \
+        "${SQLCIPHER_PKG}" \
+        curl \
+        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install sops — pinned version, verify checksum
@@ -51,15 +59,21 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH" \
     VIRTUAL_ENV="/app/.venv"
 
-# Copy application source
+# Fail the BUILD, not the first container start, if the compiled sqlcipher3
+# extension cannot find its shared library in this slimmer runtime image.
+RUN python -c "import sqlcipher3.dbapi2; print('sqlcipher3 runtime link OK')"
+
+# Copy application source.
+# There is no `COPY scripts/` here: backend/scripts/ does not exist, so that line
+# (and the chmod that followed it) failed every build. The repo's two shell
+# scripts live at the repo root and are host-side setup tools — they are not
+# needed inside the image.
 COPY app/ ./app/
-COPY scripts/ ./scripts/
 COPY alembic.ini ./
 
 # Copy and secure entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
-    chmod +x /app/scripts/*.sh && \
     chown -R appuser:appgroup /app /entrypoint.sh
 
 EXPOSE 8000

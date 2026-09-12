@@ -1,4 +1,5 @@
-.PHONY: dev build up down logs shell test lint backup init-db help
+.PHONY: dev build up down logs logs-app shell test lint backup help \
+        migrate sync ps download-static check-static
 
 COMPOSE = docker compose
 APP = $(COMPOSE) exec app
@@ -6,7 +7,7 @@ APP = $(COMPOSE) exec app
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build all Docker images
+build: check-static ## Build all Docker images (verifies vendored JS first)
 	$(COMPOSE) build
 
 up: ## Start all services
@@ -27,8 +28,10 @@ logs-app: ## Follow app logs only
 shell: ## Open a shell in the app container
 	$(APP) /bin/bash
 
-init-db: ## Run Alembic migrations and seed categories/rules
-	$(APP) /bin/bash /app/scripts/init_db.sh
+# NOTE: there is deliberately no `init-db` target. It used to run
+# /app/scripts/init_db.sh, which never existed, and it was redundant anyway:
+# migration 0001 seeds the categories and Dutch merchant rules, and
+# entrypoint.sh runs `alembic upgrade head` on every container start.
 
 migrate: ## Run Alembic migrations only
 	$(APP) python -m alembic upgrade head
@@ -44,15 +47,42 @@ backup: ## Run Restic backup (runs the backup container)
 	$(COMPOSE) run --rm backup
 
 sync: ## Trigger a manual transaction sync
-	$(APP) python -c "from app.services.sync_service import run_full_sync; import asyncio; asyncio.run(run_full_sync())"
+	$(APP) python -c "import asyncio; from app.services.sync_service import sync_all; asyncio.run(sync_all())"
 
 ps: ## Show running containers
 	$(COMPOSE) ps
 
-download-static: ## Download htmx 2.0.4 and Alpine.js 3.14 into static/js/
+# Vendored frontend libraries. The CSP allows no external script hosts, so these
+# are committed to the repo rather than loaded from a CDN. Fetched from the npm
+# registry (unpkg is not reachable from every environment) and checksum-verified,
+# because a silently-truncated or substituted download would be executed by every
+# page in the app.
+HTMX_VERSION    = 2.0.4
+HTMX_SHA256     = e209dda5c8235479f3166defc7750e1dbcd5a5c1808b7792fc2e6733768fb447
+ALPINE_VERSION  = 3.14.1
+ALPINE_SHA256   = 358d9afbb1ab5befa2f48061a30776e5bcd7707f410a606ba985f98bc3b1c034
+
+download-static: ## Download + verify htmx and Alpine.js into static/js/
 	@mkdir -p static/js
-	@echo "Downloading htmx 2.0.4..."
-	curl -fsSL https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js -o static/js/htmx.min.js
-	@echo "Downloading Alpine.js 3.14.1..."
-	curl -fsSL https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js -o static/js/alpine.min.js
-	@echo "Done. Static assets saved to static/js/"
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	echo "Downloading htmx $(HTMX_VERSION)..." && \
+	curl -fsSL "https://registry.npmjs.org/htmx.org/-/htmx.org-$(HTMX_VERSION).tgz" -o "$$tmp/htmx.tgz" && \
+	tar xzf "$$tmp/htmx.tgz" -C "$$tmp" package/dist/htmx.min.js && \
+	echo "$(HTMX_SHA256)  $$tmp/package/dist/htmx.min.js" | sha256sum -c - && \
+	cp "$$tmp/package/dist/htmx.min.js" static/js/htmx.min.js && \
+	rm -rf "$$tmp/package" && \
+	echo "Downloading Alpine.js $(ALPINE_VERSION)..." && \
+	curl -fsSL "https://registry.npmjs.org/alpinejs/-/alpinejs-$(ALPINE_VERSION).tgz" -o "$$tmp/alpine.tgz" && \
+	tar xzf "$$tmp/alpine.tgz" -C "$$tmp" package/dist/cdn.min.js && \
+	echo "$(ALPINE_SHA256)  $$tmp/package/dist/cdn.min.js" | sha256sum -c - && \
+	cp "$$tmp/package/dist/cdn.min.js" static/js/alpine.min.js
+	@echo "Static assets verified and saved to static/js/"
+
+check-static: ## Fail if static/js holds placeholder stubs instead of the real libraries
+	@echo "$(HTMX_SHA256)  static/js/htmx.min.js" | sha256sum -c - >/dev/null 2>&1 || \
+		{ echo "ERROR: static/js/htmx.min.js is missing or not the expected build."; \
+		  echo "       Run 'make download-static'."; exit 1; }
+	@echo "$(ALPINE_SHA256)  static/js/alpine.min.js" | sha256sum -c - >/dev/null 2>&1 || \
+		{ echo "ERROR: static/js/alpine.min.js is missing or not the expected build."; \
+		  echo "       Run 'make download-static'."; exit 1; }
+	@echo "Static assets OK."

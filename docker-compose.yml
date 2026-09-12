@@ -97,6 +97,12 @@ services:
       context: ./infra/restic
       dockerfile: Dockerfile
     restart: "no"
+    # One-shot job, never part of `docker compose up`. Without this it starts on
+    # every `up` and — because its age-key and secrets.enc.yaml bind mounts do not
+    # exist on a dev machine — Docker creates DIRECTORIES at those host paths.
+    # `docker compose run --rm backup` (what `make backup` does) still works:
+    # `run` enables the service's profile implicitly.
+    profiles: ["backup"]
     networks: []
     volumes:
       - db_data:/data:ro

@@ -17,15 +17,17 @@ dependencies = [
     "httpx==0.28.*",
 
     # Database
-    "sqlalchemy[asyncio]==2.0.*",
-    "aiosqlite==0.20.*",
+    # NOTE: the data layer is fully synchronous (sqlcipher3 has no async driver),
+    # so aiosqlite is deliberately absent — it was declared but never imported.
+    "sqlalchemy==2.0.*",
     "sqlcipher3==0.5.*",
     "alembic==1.14.*",
 
     # Authentication
+    # itsdangerous is deliberately absent: sessions are DB-backed opaque tokens
+    # (app/security/session.py), and Starlette's SessionMiddleware is never used.
     "webauthn==2.2.*",
     "pyotp==2.9.*",
-    "itsdangerous==2.2.*",
     "qrcode==8.0.*",
 
     # Cryptography (AES-GCM for token storage)
@@ -37,9 +39,11 @@ dependencies = [
     # Scheduling (nightly sync)
     "apscheduler==3.10.*",
 
-    # ML categorization
-    "scikit-learn==1.6.*",
-    "joblib==1.4.*",
+    # NOTE: no ML dependencies. ARCHITECTURE.md section 5 specifies a scikit-learn
+    # "Layer 2" categorization fallback, but it was never implemented —
+    # services/categorizer.py is rules-only. scikit-learn and joblib were declared
+    # but never imported, pulling ~100 MB of numpy/scipy into the image for nothing.
+    # Re-add them in the same commit that actually implements the ML layer.
 
     # Validation
     "pydantic==2.10.*",

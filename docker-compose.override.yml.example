@@ -1,41 +1,48 @@
 # Copy to docker-compose.override.yml for local development.
-# This file is gitignored when renamed.
+# The renamed file is gitignored.
 #
-# Usage: cp docker-compose.override.yml.example docker-compose.override.yml
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   make build && make up
 #
-# Overrides for local dev:
-#   - age key read from a local path instead of /etc/financehub/
-#   - app port exposed to localhost for debugging
-#   - Caddy replaced with http-only local proxy
+# This override makes a local run possible with NO SOPS setup and NO age key:
+# secrets are read in plaintext from secrets/secrets.dev.yaml, Caddy serves plain
+# HTTP on :80, and the session cookie drops the __Host- prefix and Secure flag so
+# a browser will actually accept it over http://localhost.
+#
+# Every relaxation below requires FINANCEHUB_ENV=development, which both
+# entrypoint.sh and app/config.py check independently. None of these values may
+# ever appear in docker-compose.yml.
 
 services:
   app:
-    volumes:
+    # !override replaces the base file's volume list instead of merging into it.
+    # Without this, docker-compose.yml's bind mounts for /etc/financehub/age-key.txt
+    # and ./secrets/secrets.enc.yaml are inherited, and because neither file exists
+    # on a dev machine Docker would silently create DIRECTORIES at those paths.
+    # Requires Compose v2.24+.
+    volumes: !override
       - db_data:/data
       - ml_models:/models
-      - ./secrets/age-key-dev.txt:/secrets/age-key.txt:ro   # local dev key
-      - ./secrets/secrets.enc.yaml:/secrets/secrets.enc.yaml:ro
+      # Plaintext dev secrets. Production mounts the SOPS-encrypted file and an
+      # age key instead; neither is needed here.
+      - ./secrets/secrets.dev.yaml:/secrets/secrets.dev.yaml:ro
     ports:
-      - "127.0.0.1:8000:8000"   # expose locally for dev tools
+      - "127.0.0.1:8000:8000"   # expose the app directly for dev tools
     environment:
-      - SOPS_AGE_KEY_FILE=/secrets/age-key.txt
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - ENV=development
-      # Marks this as a development deployment. Required before either of the
-      # two relaxations below will take effect at all.
+      # Gate for every relaxation below. Without this they are all inert.
       - FINANCEHUB_ENV=development
-      # Local dev is served over plain http://localhost, where browsers reject
-      # both the __Host- cookie prefix and the Secure attribute — so without
-      # this you cannot log in at all. NEVER set this in docker-compose.yml.
+      # Skip SOPS entirely and load the plaintext dev secrets mounted above.
+      - FINANCEHUB_DEV_SECRETS=/secrets/secrets.dev.yaml
+      # Local dev is plain http://localhost, where browsers reject both the
+      # __Host- cookie prefix and the Secure attribute. Without this you cannot
+      # log in at all.
       - FINANCEHUB_INSECURE_COOKIES=1
-      # WebAuthn RP ID / origin for localhost. Passkeys still require a secure
-      # context, so use the TOTP path locally; these keep the endpoints sane.
+      # WebAuthn RP ID / origin for localhost. Passkeys need a secure context, so
+      # use the TOTP login locally; these just keep the endpoints coherent.
       - FINANCEHUB_RP_ID=localhost
       - FINANCEHUB_ORIGIN=http://localhost
-      # Uncomment to skip SOPS and load secrets/secrets.dev.yaml in plaintext.
-      # Only honoured because FINANCEHUB_ENV=development is set above.
-      # - FINANCEHUB_DEV_SECRETS=/app/secrets/secrets.dev.yaml
 
   caddy:
     volumes:
