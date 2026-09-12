@@ -7,6 +7,7 @@ Behavioral economics:
 """
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from datetime import date, timedelta
@@ -14,6 +15,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
 
 _DEDUP_WINDOW = 24 * 3600  # 24 hours in seconds
 
@@ -97,6 +99,11 @@ def check_budget_warnings(db: Session, period_month: str) -> None:
         try:
             pct = Decimal(s["pct_used"])
         except Exception:
+            logger.warning(
+                "Skipping budget alert for %s — unparseable pct_used",
+                category_name,
+                exc_info=True,
+            )
             continue
 
         if pct >= Decimal("1"):
@@ -253,7 +260,10 @@ def check_goal_milestones(db: Session) -> None:
                 db,
                 alert_type="goal_milestone",
                 title=f"Goal completed: {goal.name}",
-                body=f"You have reached your savings target of €{target:.2f} for '{goal.name}'. Well done!",
+                body=(
+                    f"You have reached your savings target of €{target:.2f} "
+                    f"for '{goal.name}'. Well done!"
+                ),
                 related_goal_id=goal.id,
             )
         elif pct >= Decimal("50"):

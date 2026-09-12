@@ -22,6 +22,20 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - ENV=development
+      # Marks this as a development deployment. Required before either of the
+      # two relaxations below will take effect at all.
+      - FINANCEHUB_ENV=development
+      # Local dev is served over plain http://localhost, where browsers reject
+      # both the __Host- cookie prefix and the Secure attribute — so without
+      # this you cannot log in at all. NEVER set this in docker-compose.yml.
+      - FINANCEHUB_INSECURE_COOKIES=1
+      # WebAuthn RP ID / origin for localhost. Passkeys still require a secure
+      # context, so use the TOTP path locally; these keep the endpoints sane.
+      - FINANCEHUB_RP_ID=localhost
+      - FINANCEHUB_ORIGIN=http://localhost
+      # Uncomment to skip SOPS and load secrets/secrets.dev.yaml in plaintext.
+      # Only honoured because FINANCEHUB_ENV=development is set above.
+      # - FINANCEHUB_DEV_SECRETS=/app/secrets/secrets.dev.yaml
 
   caddy:
     volumes:

@@ -6,18 +6,17 @@ import uuid
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/categories",
     tags=["categories"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -45,7 +44,7 @@ async def list_categories(request: Request, db: Session = Depends(get_db)):
 @router.get("/rules", response_class=HTMLResponse)
 async def list_rules(request: Request, db: Session = Depends(get_db)):
     """Render the categorization rules management page."""
-    from app.models.categories import Category, CategorizationRule
+    from app.models.categories import CategorizationRule, Category
 
     rules = (
         db.query(CategorizationRule)
@@ -80,7 +79,7 @@ async def create_rule(
     is_case_sensitive: int = Form(0),
 ):
     """Create a new categorization rule."""
-    from app.models.categories import Category, CategorizationRule
+    from app.models.categories import CategorizationRule, Category
     from app.services.categorizer import invalidate_cache
 
     cat = db.query(Category).filter(Category.external_id == category_ext_id).first()

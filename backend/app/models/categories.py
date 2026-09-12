@@ -28,7 +28,9 @@ class Category(Base):
     rules: Mapped[list["CategorizationRule"]] = relationship(
         "CategorizationRule", back_populates="category"
     )
-    budget: Mapped["Budget | None"] = relationship("Budget", back_populates="category", uselist=False)
+    budget: Mapped["Budget | None"] = relationship(
+        "Budget", back_populates="category", uselist=False
+    )
 
 
 class CategorizationRule(Base):
@@ -40,7 +42,8 @@ class CategorizationRule(Base):
         Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False
     )
     field: Mapped[str] = mapped_column(Text, nullable=False)
-    match_type: Mapped[str] = mapped_column(Text, nullable=False)  # exact|contains|starts_with|regex
+    # exact | contains | starts_with | regex
+    match_type: Mapped[str] = mapped_column(Text, nullable=False)
     pattern: Mapped[str] = mapped_column(Text, nullable=False)
     is_case_sensitive: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, default=100, nullable=False)

@@ -13,7 +13,8 @@ class SavingsGoal(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     external_id: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    goal_type: Mapped[str] = mapped_column(Text, nullable=False)  # 'emergency_fund'|'purchase'|'custom'
+    # 'emergency_fund' | 'purchase' | 'custom'
+    goal_type: Mapped[str] = mapped_column(Text, nullable=False)
     target_amount: Mapped[str] = mapped_column(Text, nullable=False)   # decimal as TEXT
     current_amount: Mapped[str] = mapped_column(Text, default="0.00", nullable=False)
     target_date: Mapped[str | None] = mapped_column(Text)  # YYYY-MM-DD

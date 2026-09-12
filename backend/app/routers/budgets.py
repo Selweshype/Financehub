@@ -7,18 +7,17 @@ from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/budgets",
     tags=["budgets"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _current_month() -> str:

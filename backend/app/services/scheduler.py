@@ -36,6 +36,7 @@ async def _sync_job() -> None:
     # Regenerate monthly + net worth snapshots after every sync
     try:
         from datetime import date
+
         from app.database import get_db
         from app.services.snapshot_service import (
             compute_monthly_snapshot,
@@ -57,6 +58,7 @@ async def _sync_job() -> None:
     # Run alert checks after snapshots
     try:
         from datetime import date as _date
+
         from app.database import get_db as _get_db
         from app.services.alert_service import (
             check_budget_warnings,
@@ -76,6 +78,24 @@ async def _sync_job() -> None:
             _db.close()
     except Exception as alert_exc:
         logger.warning("Alert checks failed: %s", alert_exc)
+
+    # Purge sessions past their absolute or idle deadline (finding M1 — expired
+    # rows were never removed, so the table grew without bound and revoked
+    # tokens lingered at rest).
+    try:
+        from app.database import get_db as _sess_get_db
+        from app.security.session import purge_expired_sessions
+
+        _sess_gen = _sess_get_db()
+        _sess_db = next(_sess_gen)
+        try:
+            removed = purge_expired_sessions(_sess_db)
+            if removed:
+                logger.info("Purged %d expired session(s)", removed)
+        finally:
+            _sess_db.close()
+    except Exception as sess_exc:
+        logger.warning("Session purge failed: %s", sess_exc)
 
 
 def start_scheduler() -> None:

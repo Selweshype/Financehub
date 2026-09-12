@@ -6,9 +6,10 @@ Exports:
     get_db() — FastAPI dependency that yields a synchronous Session
 """
 import os
+import re
 from typing import Generator
 
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 # ---------------------------------------------------------------------------
@@ -23,11 +24,34 @@ class Base(DeclarativeBase):
 # PRAGMAs applied after every new connection (including Alembic's)
 # ---------------------------------------------------------------------------
 
+_HEX_KEY_RE = re.compile(r"\A[0-9a-fA-F]{64}\Z")
+
+
 def _apply_pragmas(dbapi_conn, _connection_record):
-    """Configure SQLCipher and SQLite PRAGMAs on every new connection."""
+    """Configure SQLCipher and SQLite PRAGMAs on every new connection.
+
+    Finding H5: the key was interpolated straight into the PRAGMA statement,
+    so a key containing a single quote would break out of the string literal
+    and execute arbitrary SQL every time a connection opened.  PRAGMA names
+    and values cannot be bound as parameters by the driver, so the key is
+    instead validated as exactly 64 hex characters before it is ever used.
+    """
     key = os.environ.get("FINANCEHUB_DB_KEY", "")
-    if key:
-        dbapi_conn.execute(f"PRAGMA key='{key}'")
+    if not key:
+        # Previously an empty key simply skipped the PRAGMA, which silently
+        # created or opened a *plaintext* SQLite file. For an app whose whole
+        # at-rest story is "the database is SQLCipher-encrypted", failing to
+        # encrypt must be a hard error, never a quiet downgrade.
+        raise ValueError(
+            "FINANCEHUB_DB_KEY is not set — refusing to open an unencrypted database."
+        )
+    if not _HEX_KEY_RE.match(key):
+        raise ValueError(
+            "FINANCEHUB_DB_KEY must be exactly 64 hexadecimal characters "
+            "(32 bytes). Generate one with: "
+            'python3 -c "import secrets; print(secrets.token_hex(32))"'
+        )
+    dbapi_conn.execute(f"PRAGMA key='{key}'")  # noqa: S608 - validated hex above
     dbapi_conn.execute("PRAGMA journal_mode=WAL")
     dbapi_conn.execute("PRAGMA foreign_keys=ON")
     dbapi_conn.execute("PRAGMA synchronous=NORMAL")
@@ -36,9 +60,25 @@ def _apply_pragmas(dbapi_conn, _connection_record):
 
 
 def _make_engine(db_path: str):
-    """Create a SQLAlchemy engine for the given SQLCipher3 database path."""
-    url = f"sqlite+pysqlcipher3:///:/{db_path}?timeout=30"
-    engine = create_engine(url, connect_args={"check_same_thread": False})
+    """Create a SQLAlchemy engine for the given SQLCipher database path.
+
+    The URL was previously ``sqlite+pysqlcipher3://``, which is not a dialect
+    SQLAlchemy 2.0 ships — the real name is ``pysqlcipher`` — so every engine
+    raised NoSuchModuleError and the application could never open its database.
+    Rather than switch to that dialect (it demands the key in the URL and
+    applies ``pragma key=<value>`` unquoted, which is exactly the injection
+    shape finding H5 is about), keep the standard sqlite dialect and point it
+    at the sqlcipher3 DBAPI. The key is then applied by ``_apply_pragmas``
+    after the validation above, and never appears in a connection string.
+    """
+    import sqlcipher3.dbapi2 as sqlcipher_dbapi
+
+    url = f"sqlite:///{db_path}"
+    engine = create_engine(
+        url,
+        module=sqlcipher_dbapi,
+        connect_args={"check_same_thread": False, "timeout": 30},
+    )
     event.listen(engine, "connect", _apply_pragmas)
     return engine
 

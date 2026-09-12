@@ -35,9 +35,10 @@ class TestDatabaseConfig:
             DatabaseConfig()
 
     def test_key_must_be_string(self):
-        # Pydantic coerces ints to str in lax mode but validates type presence
-        cfg = DatabaseConfig(key=42)
-        assert cfg.key == "42"
+        # Pydantic v2 does not coerce int -> str even in lax mode; a non-string
+        # key is a validation error, not a silently stringified value.
+        with pytest.raises(ValidationError):
+            DatabaseConfig(key=42)
 
 
 class TestAppConfig:

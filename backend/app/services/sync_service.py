@@ -5,6 +5,7 @@ them into the local database, running the categorizer on each new transaction.
 """
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -16,6 +17,8 @@ from app.database import get_db
 from app.services.categorizer import categorize
 from app.services.nordigen_client import NordigenClient
 from app.services.token_store import NordigenTokenStore
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -48,9 +51,9 @@ async def _get_valid_access_token(
     new_tokens = await client.ensure_token(**kwargs)
     store.save(
         access_token=new_tokens["access"],
-        access_expires_at=int(time.time()) + new_tokens["access_expires"],
+        access_expires_at=new_tokens["access_expires_at"],
         refresh_token=new_tokens["refresh"],
-        refresh_expires_at=int(time.time()) + new_tokens["refresh_expires"],
+        refresh_expires_at=new_tokens["refresh_expires_at"],
     )
     return new_tokens["access"]
 
@@ -62,7 +65,6 @@ async def sync_account(
     access_token: str,
 ) -> SyncResult:
     """Sync a single account and return a SyncResult."""
-    from app.models.accounts import Account
     from app.models.nordigen import SyncLog
     from app.models.transactions import Transaction
 
@@ -138,7 +140,11 @@ async def sync_account(
                 account.balance_type = first_balance.get("balanceType")
                 account.balance_updated_at = now
         except Exception:
-            pass  # Balance update failure is non-fatal
+            # Non-fatal, but log it: a silently failing balance refresh looks
+            # identical to an up-to-date balance in the UI.
+            logger.warning(
+                "Balance refresh failed for account_id=%s", account.id, exc_info=True
+            )
 
         db.commit()
 

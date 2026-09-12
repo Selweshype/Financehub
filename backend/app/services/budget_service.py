@@ -17,9 +17,8 @@ import uuid
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from sqlalchemy import func, text
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-
 
 # ------------------------------------------------------------------ #
 # Helpers
@@ -134,7 +133,7 @@ def get_budget_summary(db: Session, period_month: str) -> list[dict]:
       category_color, monthly_amount, effective_amount, rollover_amount,
       spent, pct_used (Decimal 0-∞), is_over_budget, is_warning (>80%)
     """
-    from app.models.budgets import Budget, BudgetPeriod
+    from app.models.budgets import Budget
     from app.models.categories import Category
 
     spend_map = compute_monthly_spend(db, period_month)
@@ -318,14 +317,16 @@ def compute_remaining_today(db: Session, period_month: str) -> Decimal:
     Formula: (total wants effective_amount - wants spent this month) / days_remaining
     days_remaining is at least 1.
     """
-    from app.models.budgets import Budget
-    from app.models.categories import Category
 
     summary = get_budget_summary(db, period_month)
     wants_budgets = [s for s in summary if s["framework_type"] == "wants"]
 
-    total_effective = sum(_dec(s["effective_amount"]) for s in wants_budgets)
-    total_spent = sum(_dec(s["spent"]) for s in wants_budgets)
+    # Seed the sums with Decimal("0"): bare sum() returns the int 0 for an
+    # empty sequence, and int / int yields a float, which has no .quantize()
+    # — so /budgets/ raised AttributeError for every account with no budgets
+    # set yet, i.e. every fresh install. Money must stay Decimal end to end.
+    total_effective = sum((_dec(s["effective_amount"]) for s in wants_budgets), Decimal("0"))
+    total_spent = sum((_dec(s["spent"]) for s in wants_budgets), Decimal("0"))
     remaining = total_effective - total_spent
 
     today = date.today()
@@ -336,7 +337,7 @@ def compute_remaining_today(db: Session, period_month: str) -> Decimal:
     except Exception:
         days_remaining = 1
 
-    return (remaining / days_remaining).quantize(
+    return (remaining / Decimal(days_remaining)).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     )
 
@@ -356,8 +357,8 @@ def process_month_end_rollover(db: Session, closing_month: str) -> None:
     # Compute next month
     try:
         year, month = map(int, closing_month.split("-"))
-    except ValueError:
-        raise ValueError(f"Invalid period_month: {closing_month}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid period_month: {closing_month}") from exc
 
     month += 1
     if month > 12:

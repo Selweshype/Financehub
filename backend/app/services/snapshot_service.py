@@ -311,7 +311,7 @@ def build_net_worth_svg(snapshots: list[dict]) -> dict:
 
     pts = []
     labels = []
-    for i, (s, v) in enumerate(zip(snapshots, values)):
+    for i, (s, v) in enumerate(zip(snapshots, values, strict=False)):
         x = _MX + (i / max(n - 1, 1)) * _DW
         y = _MY + (1 - (v - v_min) / v_range) * _DH
         pts.append(f"{x:.1f},{y:.1f}")

@@ -11,18 +11,17 @@ from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/goals",
     tags=["goals"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ------------------------------------------------------------------ #

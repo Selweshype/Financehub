@@ -24,7 +24,7 @@ from app.config import (
 
 def _make_fake_secrets() -> Secrets:
     return Secrets(
-        database=DatabaseConfig(key="testdbkey"),
+        database=DatabaseConfig(key="a" * 64),
         app=AppConfig(secret_key="testappsecret"),
         nordigen=NordigenConfig(secret_id="nid", secret_key="nkey"),
         token_encryption=TokenEncryptionConfig(master_key="mkey"),
@@ -57,33 +57,33 @@ def reset_secrets():
 
 
 # ---------------------------------------------------------------------------
-# /health endpoint tests
+# /liveness endpoint tests
 # ---------------------------------------------------------------------------
 
 
 class TestHealthEndpoint:
-    def test_health_returns_200(self, client):
-        response = client.get("/health")
+    def test_liveness_returns_200(self, client):
+        response = client.get("/liveness")
         assert response.status_code == 200
 
-    def test_health_returns_ok_json(self, client):
-        response = client.get("/health")
+    def test_liveness_returns_ok_json(self, client):
+        response = client.get("/liveness")
         assert response.json() == {"status": "ok"}
 
-    def test_health_content_type_is_json(self, client):
-        response = client.get("/health")
+    def test_liveness_content_type_is_json(self, client):
+        response = client.get("/liveness")
         assert "application/json" in response.headers["content-type"]
 
-    def test_health_has_csp_header(self, client):
-        response = client.get("/health")
+    def test_liveness_has_csp_header(self, client):
+        response = client.get("/liveness")
         assert "Content-Security-Policy" in response.headers
 
-    def test_health_has_x_content_type_options(self, client):
-        response = client.get("/health")
+    def test_liveness_has_x_content_type_options(self, client):
+        response = client.get("/liveness")
         assert response.headers.get("X-Content-Type-Options") == "nosniff"
 
-    def test_health_has_x_frame_options_deny(self, client):
-        response = client.get("/health")
+    def test_liveness_has_x_frame_options_deny(self, client):
+        response = client.get("/liveness")
         assert response.headers.get("X-Frame-Options") == "DENY"
 
 
@@ -94,52 +94,52 @@ class TestHealthEndpoint:
 
 class TestCspNonceMiddleware:
     def test_csp_header_is_present(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         assert "Content-Security-Policy" in response.headers
 
     def test_csp_contains_default_src_self(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "default-src 'self'" in csp
 
     def test_csp_contains_script_src_with_nonce(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert re.search(r"script-src 'self' 'nonce-[A-Za-z0-9_-]+'", csp)
 
     def test_csp_contains_style_src_with_nonce(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert re.search(r"style-src 'self' 'nonce-[A-Za-z0-9_-]+'", csp)
 
     def test_csp_contains_img_src(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "img-src 'self' data:" in csp
 
     def test_csp_contains_frame_ancestors_none(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "frame-ancestors 'none'" in csp
 
     def test_csp_contains_form_action_self(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "form-action 'self'" in csp
 
     def test_csp_contains_base_uri_self(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "base-uri 'self'" in csp
 
     def test_csp_contains_connect_src_self(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         assert "connect-src 'self'" in csp
 
     def test_csp_nonce_script_and_style_match(self, client):
         """The nonce in script-src and style-src must be the same token."""
-        response = client.get("/health")
+        response = client.get("/liveness")
         csp = response.headers["Content-Security-Policy"]
         script_match = re.search(r"script-src 'self' 'nonce-([A-Za-z0-9_-]+)'", csp)
         style_match = re.search(r"style-src 'self' 'nonce-([A-Za-z0-9_-]+)'", csp)
@@ -149,8 +149,8 @@ class TestCspNonceMiddleware:
 
     def test_nonce_is_unique_per_request(self, client):
         """Each request receives a distinct CSP nonce."""
-        resp1 = client.get("/health")
-        resp2 = client.get("/health")
+        resp1 = client.get("/liveness")
+        resp2 = client.get("/liveness")
         csp1 = resp1.headers["Content-Security-Policy"]
         csp2 = resp2.headers["Content-Security-Policy"]
         nonce1_match = re.search(r"script-src 'self' 'nonce-([A-Za-z0-9_-]+)'", csp1)
@@ -160,16 +160,16 @@ class TestCspNonceMiddleware:
         assert nonce1_match.group(1) != nonce2_match.group(1)
 
     def test_x_content_type_options_nosniff(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         assert response.headers.get("X-Content-Type-Options") == "nosniff"
 
     def test_x_frame_options_deny(self, client):
-        response = client.get("/health")
+        response = client.get("/liveness")
         assert response.headers.get("X-Frame-Options") == "DENY"
 
     def test_security_headers_applied_to_all_routes(self, client):
         """Both /health and other routes get security headers from middleware."""
-        health_resp = client.get("/health")
+        health_resp = client.get("/liveness")
         assert "Content-Security-Policy" in health_resp.headers
         assert health_resp.headers["X-Content-Type-Options"] == "nosniff"
         assert health_resp.headers["X-Frame-Options"] == "DENY"

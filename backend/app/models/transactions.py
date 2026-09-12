@@ -46,4 +46,4 @@ class Transaction(Base):
 
 
 from app.models.accounts import Account  # noqa: E402, F401
-from app.models.categories import Category, CategorizationRule  # noqa: E402, F401
+from app.models.categories import CategorizationRule, Category  # noqa: E402, F401

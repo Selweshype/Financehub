@@ -62,7 +62,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "S", "B"]
-ignore = ["S101"]  # allow assert in tests
+ignore = [
+    "S101",  # allow assert in tests
+    "B008",  # `Depends(...)` in a default argument is the FastAPI idiom
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

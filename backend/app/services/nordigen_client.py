@@ -57,31 +57,38 @@ class NordigenClient:
         If *access_token* is still valid (>60 s margin) it is returned as-is.
         If the refresh token is valid, it is used to get a new access token.
         Otherwise a completely new token pair is obtained.
+
+        Finding M5: this used to return a mix of absolute timestamps and
+        relative durations under the same keys, and the caller then added
+        ``time.time()`` on top — so expiry landed roughly twice as far in the
+        future as it should and refresh never fired, leaving the app to reuse
+        an already-expired access token. Every value returned here is now an
+        absolute Unix timestamp, named ``*_expires_at`` to make that explicit.
         """
         now = int(time.time())
         if access_token and access_expires_at - 60 > now:
             return {
                 "access": access_token,
-                "access_expires": access_expires_at - now,
+                "access_expires_at": access_expires_at,
                 "refresh": refresh_token,
-                "refresh_expires": refresh_expires_at - now,
+                "refresh_expires_at": refresh_expires_at,
             }
 
         if refresh_token and refresh_expires_at - 60 > now:
             data = await self._refresh_access_token(refresh_token)
             return {
                 "access": data["access"],
-                "access_expires": now + data.get("access_expires", 86400),
+                "access_expires_at": now + int(data.get("access_expires", 86400)),
                 "refresh": refresh_token,
-                "refresh_expires": refresh_expires_at,
+                "refresh_expires_at": refresh_expires_at,
             }
 
         data = await self._get_new_tokens()
         return {
             "access": data["access"],
-            "access_expires": now + data.get("access_expires", 86400),
+            "access_expires_at": now + int(data.get("access_expires", 86400)),
             "refresh": data["refresh"],
-            "refresh_expires": now + data.get("refresh_expires", 2592000),
+            "refresh_expires_at": now + int(data.get("refresh_expires", 2592000)),
         }
 
     def _auth_headers(self, access_token: str) -> dict[str, str]:

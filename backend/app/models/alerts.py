@@ -34,6 +34,6 @@ class Alert(Base):
     related_goal: Mapped["SavingsGoal | None"] = relationship("SavingsGoal")
 
 
-from app.models.transactions import Transaction  # noqa: E402, F401
 from app.models.budgets import Budget  # noqa: E402, F401
 from app.models.goals import SavingsGoal  # noqa: E402, F401
+from app.models.transactions import Transaction  # noqa: E402, F401

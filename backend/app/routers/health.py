@@ -12,18 +12,17 @@ from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/health",
     tags=["health"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _current_month() -> str:
@@ -39,7 +38,6 @@ async def health_dashboard(request: Request, db: Session = Depends(get_db)):
     """Render the Financial Health Dashboard overview."""
     from app.services.snapshot_service import (
         compute_net_worth_snapshot,
-        get_cash_flow_history,
     )
 
     # Latest net worth snapshot (generate/refresh for today)
@@ -53,8 +51,6 @@ async def health_dashboard(request: Request, db: Session = Depends(get_db)):
         .filter(MonthlySnapshot.period_month == current_month)
         .first()
     )
-
-    cash_flow_data = get_cash_flow_history(db, n_months=6)
 
     from app.services.liability_service import list_liabilities
 

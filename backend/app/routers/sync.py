@@ -18,7 +18,6 @@ router = APIRouter(
 @router.post("/trigger")
 async def trigger_sync(request: Request, db: Session = Depends(get_db)):
     """Manually trigger a full Nordigen sync for all accounts."""
-    import asyncio
 
     from app.services.sync_service import sync_all
 

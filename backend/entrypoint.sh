@@ -34,12 +34,15 @@ export FINANCEHUB_DB_PATH="${FINANCEHUB_DB_PATH:-/data/financehub.db}"
 mkdir -p "$(dirname "$FINANCEHUB_DB_PATH")"
 
 echo "Running Alembic migrations..."
-cd /app && uv run python -m alembic upgrade head
+# Invoke the venv interpreter directly rather than through `uv run`: the
+# container now runs with a read-only root filesystem (finding M3) and uv
+# wants a writable cache at runtime.
+cd /app && /app/.venv/bin/python -m alembic upgrade head
 echo "Migrations: OK"
 
 echo "Starting FinanceHub..."
 
-exec uv run uvicorn app.main:app \
+exec /app/.venv/bin/uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
     --no-access-log

@@ -3,18 +3,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/transactions",
     tags=["transactions"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -101,9 +100,10 @@ async def categorize_transaction(
     category_id: str = Form(...),
 ):
     """HTMX partial — update transaction category and return updated row."""
+    import time
+
     from app.models.categories import Category
     from app.models.transactions import Transaction
-    import time
 
     tx = db.query(Transaction).filter(Transaction.external_id == ext_id).first()
     if tx is None:

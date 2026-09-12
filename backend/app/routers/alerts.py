@@ -8,18 +8,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
+from app.templating import templates
 
 router = APIRouter(
     prefix="/alerts",
     tags=["alerts"],
     dependencies=[Depends(require_session)],
 )
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ------------------------------------------------------------------ #
@@ -79,7 +78,8 @@ async def mark_read(
     db: Session = Depends(get_db),
 ):
     """Mark an alert as read and return the updated card partial."""
-    from app.services.alert_service import list_alerts, mark_read as svc_mark_read
+    from app.services.alert_service import list_alerts
+    from app.services.alert_service import mark_read as svc_mark_read
 
     svc_mark_read(db, ext_id)
 
