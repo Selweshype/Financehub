@@ -22,8 +22,11 @@
 
 <!-- Stats grid -->
 <div class="stat-grid" style="margin-bottom:1.5rem;">
-    {% set total_effective = summaries | sum(attribute='effective_amount') | float %}
-    {% set total_spent = summaries | sum(attribute='spent') | float %}
+    {# Two `| sum(attribute=...) | float` lines used to sit here. They crashed the
+       page with TypeError as soon as a single budget existed — Jinja's `sum`
+       starts at the integer 0 and these are TEXT decimal strings — and neither
+       value was ever rendered. Money totals belong in the service layer with
+       Decimal (app/money.py), not in a template filter. #}
     {% set over_budget = summaries | selectattr('is_over_budget') | list | length %}
 
     <div class="stat-card">

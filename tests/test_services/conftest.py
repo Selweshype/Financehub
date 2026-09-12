@@ -58,11 +58,20 @@ def db(tmp_path, monkeypatch):
 
     Base.metadata.create_all(db_module._app_engine)
 
+    # The categorizer keeps a module-level rule cache with a 300 s TTL. It is
+    # keyed on nothing but time, so without this a cache populated against a
+    # previous test's database leaks into the next one and hands out category
+    # and rule ids that do not exist there (FK violations on insert).
+    from app.services.categorizer import invalidate_cache
+
+    invalidate_cache()
+
     session = db_module._SessionLocal()
     try:
         yield session
     finally:
         session.close()
+        invalidate_cache()
         config_module._secrets = None
 
 

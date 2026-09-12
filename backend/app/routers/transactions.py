@@ -1,13 +1,17 @@
-"""Transactions router — list with filters and inline HTMX categorization."""
+"""Transactions router — list, filter, inline HTMX categorization, and CSV import."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Form, Request
+import logging
+
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security.session import require_session
 from app.templating import templates
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/transactions",
@@ -135,5 +139,71 @@ async def categorize_transaction(
             "csp_nonce": request.state.csp_nonce,
             "tx": tx,
             "categories": categories,
+        },
+    )
+
+
+# ------------------------------------------------------------------ #
+# CSV import
+#
+# The only other way to get transactions into the database is a live
+# GoCardless sync, which needs an API account and a public HTTPS redirect.
+# Importing a downloaded bank export makes the app usable without either, and
+# remains a useful fallback if a bank link breaks.
+# ------------------------------------------------------------------ #
+
+@router.get("/import", response_class=HTMLResponse)
+async def import_form(request: Request, db: Session = Depends(get_db)):
+    """Render the CSV upload form."""
+    return templates.TemplateResponse(
+        "transactions/import.html",
+        {
+            "request": request,
+            "csp_nonce": request.state.csp_nonce,
+            "result": None,
+            "error": None,
+            "messages": [],
+        },
+    )
+
+
+@router.post("/import", response_class=HTMLResponse)
+async def import_upload(
+    request: Request,
+    db: Session = Depends(get_db),
+    file: UploadFile = File(...),
+    account_label: str = Form(""),
+):
+    """Import a bank CSV export and report what happened to each row."""
+    from app.services.import_service import ImportError_, import_csv
+
+    result = None
+    error = None
+
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".csv"):
+        error = "Please upload a .csv file exported from your bank."
+    else:
+        try:
+            raw = await file.read()
+            result = import_csv(db, raw, account_label.strip() or None)
+        except ImportError_ as exc:
+            # Safe to show: these messages are written for the user and never
+            # contain file contents.
+            error = str(exc)
+        except Exception:
+            logger.warning("CSV import failed unexpectedly", exc_info=True)
+            error = "The file could not be imported. Check the server logs for details."
+        finally:
+            await file.close()
+
+    return templates.TemplateResponse(
+        "transactions/import.html",
+        {
+            "request": request,
+            "csp_nonce": request.state.csp_nonce,
+            "result": result,
+            "error": error,
+            "messages": [],
         },
     )
