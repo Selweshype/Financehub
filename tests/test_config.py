@@ -1,6 +1,5 @@
 """Tests for backend/app/config.py — secrets loading and Pydantic models."""
 
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,7 +17,6 @@ from app.config import (
     get_secrets,
     load_secrets,
 )
-
 
 # ---------------------------------------------------------------------------
 # Pydantic model tests
@@ -222,7 +220,9 @@ class TestLoadSecrets:
         mock_result.stdout = "this is not yaml: [{"
 
         with patch("app.config.subprocess.run", return_value=mock_result):
-            with pytest.raises(Exception):
+            # Specifically a YAML parse error — a bare `Exception` here would
+            # also have passed if load_secrets raised NameError or TypeError.
+            with pytest.raises(yaml.YAMLError):
                 load_secrets()
 
     def test_yaml_missing_required_section_raises_validation_error(self):

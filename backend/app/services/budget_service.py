@@ -17,8 +17,9 @@ import uuid
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+from app.money import sum_amounts, to_decimal
 
 # ------------------------------------------------------------------ #
 # Helpers
@@ -44,38 +45,42 @@ def _today_month() -> str:
 def compute_monthly_spend(db: Session, period_month: str) -> dict[int, Decimal]:
     """Return {category_id: total_spent} for all categorized transactions in *period_month*.
 
-    Only negative amounts (expenses) are summed; the result is returned as
-    a positive Decimal (absolute value).
+    Spend is reported as a positive Decimal. Expenses are stored as negative
+    amounts, so a category's spend is the negation of its net flow; refunds and
+    other inflows reduce it. A category whose net flow is positive (refunds
+    exceeded spending, or income was filed under an expense category) reports
+    zero spend rather than a phantom positive figure.
+
+    Aggregation happens in Python, not SQL: ``func.sum()`` over this TEXT column
+    returns a float and loses cents. See app/money.py.
     """
     from app.models.transactions import Transaction
 
     prefix = f"{period_month}-%"
     rows = (
-        db.query(
-            Transaction.category_id,
-            func.sum(Transaction.amount).label("total"),
-        )
+        db.query(Transaction.category_id, Transaction.amount)
         .filter(
             Transaction.booking_date.like(prefix),
             Transaction.category_id.isnot(None),
             Transaction.is_pending == 0,
         )
-        .group_by(Transaction.category_id)
         .all()
     )
 
-    result: dict[int, Decimal] = {}
-    for row in rows:
-        if row.category_id is None:
+    net_by_category: dict[int, Decimal] = {}
+    for category_id, amount in rows:
+        if category_id is None:
             continue
-        try:
-            total = Decimal(str(row.total or "0"))
-        except InvalidOperation:
-            total = Decimal("0")
-        # Expenses are negative amounts; return as positive
-        result[row.category_id] = abs(total)
+        net_by_category[category_id] = (
+            net_by_category.get(category_id, Decimal("0")) + to_decimal(amount, default="0")
+        )
 
-    return result
+    # Negate: net outflow is negative, and spend is expressed positive.
+    # Floor at zero so a net-inflow category is not reported as spending.
+    return {
+        category_id: max(-net, Decimal("0"))
+        for category_id, net in net_by_category.items()
+    }
 
 
 # ------------------------------------------------------------------ #
@@ -223,23 +228,21 @@ def compute_50_30_20_suggestion(db: Session) -> dict:
     monthly_incomes: list[Decimal] = []
     for month in months:
         prefix = f"{month}-%"
-        row = (
-            db.query(func.sum(Transaction.amount))
+        # Summed in Python, not SQL — func.sum() on this TEXT column returns a
+        # float and loses cents. See app/money.py.
+        amounts = (
+            db.query(Transaction.amount)
             .filter(
                 Transaction.booking_date.like(prefix),
                 Transaction.category_id.in_(income_cat_ids) if income_cat_ids else False,
                 Transaction.is_pending == 0,
             )
-            .scalar()
+            .all()
         )
-        try:
-            val = Decimal(str(row or "0"))
-        except InvalidOperation:
-            val = Decimal("0")
-        monthly_incomes.append(abs(val))
+        monthly_incomes.append(abs(sum_amounts(a for (a,) in amounts)))
 
     if monthly_incomes and any(v > 0 for v in monthly_incomes):
-        avg_income = (sum(monthly_incomes) / len(monthly_incomes)).quantize(
+        avg_income = (sum(monthly_incomes, Decimal("0")) / len(monthly_incomes)).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
     else:

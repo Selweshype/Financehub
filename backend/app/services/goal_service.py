@@ -12,8 +12,9 @@ import uuid
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+from app.money import sum_amounts
 
 
 def _dec(value: str | None, default: str = "0.00") -> Decimal:
@@ -110,23 +111,20 @@ def compute_emergency_fund_template(db: Session) -> dict:
     monthly_totals: list[Decimal] = []
     for month in months:
         prefix = f"{month}-%"
-        row = (
-            db.query(func.sum(Transaction.amount))
+        # Folded in Python, not SQL — see app/money.py.
+        amounts = (
+            db.query(Transaction.amount)
             .filter(
                 Transaction.booking_date.like(prefix),
                 Transaction.category_id.in_(cat_ids) if cat_ids else False,
                 Transaction.is_pending == 0,
             )
-            .scalar()
+            .all()
         )
-        try:
-            val = abs(Decimal(str(row or "0")))
-        except InvalidOperation:
-            val = Decimal("0")
-        monthly_totals.append(val)
+        monthly_totals.append(abs(sum_amounts(a for (a,) in amounts)))
 
     if monthly_totals and any(v > 0 for v in monthly_totals):
-        avg_monthly = (sum(monthly_totals) / len(monthly_totals)).quantize(
+        avg_monthly = (sum(monthly_totals, Decimal("0")) / len(monthly_totals)).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
     else:

@@ -197,11 +197,10 @@ async def index(request: Request):
     """Render the dashboard home page."""
     from datetime import date
 
-    from sqlalchemy import func
-
     from app.database import get_db
     from app.models.accounts import Account
     from app.models.transactions import Transaction
+    from app.money import sum_amounts
 
     # `date` was previously imported inside the try block below but used again
     # in the template context after it, so any failure in the query path left
@@ -215,19 +214,17 @@ async def index(request: Request):
         account_count = db.query(Account).filter(Account.is_active == 1).count()
         transaction_count = db.query(Transaction).filter(Transaction.is_pending == 0).count()
 
-        expense_row = (
-            db.query(func.sum(Transaction.amount))
+        # Folded in Python, not SQL: func.sum() over this TEXT column returns a
+        # float and loses cents. See app/money.py.
+        amounts = (
+            db.query(Transaction.amount)
             .filter(
                 Transaction.booking_date.like(f"{current_month}-%"),
                 Transaction.is_pending == 0,
             )
-            .scalar()
+            .all()
         )
-        try:
-            from decimal import Decimal
-            total_flow = Decimal(str(expense_row or "0"))
-        except Exception:
-            total_flow = None
+        total_flow = sum_amounts(a for (a,) in amounts)
 
     except Exception:
         account_count = 0

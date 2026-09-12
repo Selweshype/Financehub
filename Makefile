@@ -1,8 +1,14 @@
 .PHONY: dev build up down logs logs-app shell test lint backup help \
-        migrate sync ps download-static check-static
+        migrate sync ps download-static check-static venv
 
 COMPOSE = docker compose
 APP = $(COMPOSE) exec app
+
+# Tests and linters run on the HOST, not in the container. The runtime image is
+# deliberately slim — it contains no test code, no dev dependencies and no
+# linters — so `docker compose exec app pytest tests/` could never have worked.
+VENV = backend/.venv
+PY   = $(VENV)/bin/python
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -36,12 +42,16 @@ shell: ## Open a shell in the app container
 migrate: ## Run Alembic migrations only
 	$(APP) python -m alembic upgrade head
 
-test: ## Run test suite
-	$(APP) python -m pytest tests/ -v
+venv: ## Create the host dev virtualenv used by `make test` and `make lint`
+	cd backend && uv sync
+	@echo "Dev virtualenv ready at $(VENV)"
 
-lint: ## Run ruff linter + bandit security scanner
-	$(APP) python -m ruff check app/
-	$(APP) python -m bandit -r app/ -ll
+test: ## Run test suite (host)
+	PYTHONPATH=backend $(PY) -m pytest tests/ -v
+
+lint: ## Run ruff linter + bandit security scanner (host)
+	cd backend && .venv/bin/ruff check app/ ../tests/
+	cd backend && .venv/bin/bandit -r app/ -ll
 
 backup: ## Run Restic backup (runs the backup container)
 	$(COMPOSE) run --rm backup

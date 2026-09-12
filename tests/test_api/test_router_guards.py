@@ -37,8 +37,9 @@ def test_router_requires_session(module_name):
     router = getattr(module, "router", None)
     assert router is not None, f"app.routers.{module_name} has no `router`"
 
+    depends_type = type(Depends(lambda: None))
     dependency_calls = [
-        dep.dependency for dep in router.dependencies if isinstance(dep, type(Depends(lambda: None)))
+        dep.dependency for dep in router.dependencies if isinstance(dep, depends_type)
     ]
     assert require_session in dependency_calls, (
         f"app.routers.{module_name} does not carry require_session at router level — "

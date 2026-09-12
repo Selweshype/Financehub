@@ -36,54 +36,6 @@ def _fake_secrets() -> Secrets:
 
 
 @pytest.fixture()
-def client(tmp_path, monkeypatch):
-    """A TestClient backed by a real, throwaway SQLCipher database."""
-    from app.database import Base, init_db
-    from app.security import bootstrap, challenge, ratelimit
-
-    db_path = str(tmp_path / "test.db")
-    monkeypatch.setenv("FINANCEHUB_DB_KEY", TEST_DB_KEY)
-    monkeypatch.setenv("FINANCEHUB_DB_PATH", db_path)
-    monkeypatch.setenv("FINANCEHUB_ENV", "development")
-    monkeypatch.setenv("FINANCEHUB_RP_ID", "testserver")
-    monkeypatch.setenv("FINANCEHUB_ORIGIN", "http://testserver")
-
-    secrets_obj = _fake_secrets()
-    config_module._secrets = secrets_obj
-
-    init_db(TEST_DB_KEY, db_path)
-
-    import app.database as db_module
-    import app.models.accounts  # noqa: F401 - register tables
-    import app.models.auth  # noqa: F401
-    import app.models.budgets  # noqa: F401
-    import app.models.categories  # noqa: F401
-    import app.models.goals  # noqa: F401
-    import app.models.liabilities  # noqa: F401
-    import app.models.nordigen  # noqa: F401
-    import app.models.snapshots  # noqa: F401
-    import app.models.transactions  # noqa: F401
-    import app.models.alerts  # noqa: F401
-
-    Base.metadata.create_all(db_module._app_engine)
-
-    challenge.clear()
-    ratelimit.clear()
-    bootstrap.clear_bootstrap_token()
-
-    from app.main import app as fastapi_app
-
-    # Bypass lifespan (it would try to load real secrets / start the scheduler).
-    with TestClient(fastapi_app) as c:
-        yield c
-
-    challenge.clear()
-    ratelimit.clear()
-    bootstrap.clear_bootstrap_token()
-    config_module._secrets = None
-
-
-@pytest.fixture()
 def app_client(tmp_path, monkeypatch):
     """Same as `client` but without entering lifespan (no scheduler)."""
     yield from _build_client(tmp_path, monkeypatch)
@@ -103,8 +55,8 @@ def _build_client(tmp_path, monkeypatch):
     init_db(TEST_DB_KEY, db_path)
 
     import app.database as db_module
-    import app.models.alerts  # noqa: F401
     import app.models.accounts  # noqa: F401
+    import app.models.alerts  # noqa: F401
     import app.models.auth  # noqa: F401
     import app.models.budgets  # noqa: F401
     import app.models.categories  # noqa: F401

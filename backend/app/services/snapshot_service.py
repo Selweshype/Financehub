@@ -10,8 +10,9 @@ import time
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+from app.money import to_decimal
 
 
 def _dec(value: str | None, default: str = "0.00") -> Decimal:
@@ -43,27 +44,29 @@ def compute_monthly_snapshot(db: Session, period_month: str):
 
     prefix = f"{period_month}-%"
 
-    # Aggregate amounts by framework_type for the month
+    # Aggregate amounts by framework_type for the month.
+    # Folded in Python, not SQL: func.sum() over this TEXT column returns a
+    # float and loses cents. See app/money.py.
     rows = (
-        db.query(Category.framework_type, func.sum(Transaction.amount))
+        db.query(Category.framework_type, Transaction.amount)
         .join(Category, Transaction.category_id == Category.id)
         .filter(
             Transaction.booking_date.like(prefix),
             Transaction.is_pending == 0,
             Transaction.category_id.isnot(None),
         )
-        .group_by(Category.framework_type)
         .all()
     )
 
     framework_totals: dict[str, Decimal] = {}
-    for ftype, total in rows:
+    for ftype, amount in rows:
         if ftype is None:
             continue
-        try:
-            framework_totals[ftype] = abs(Decimal(str(total or "0")))
-        except InvalidOperation:
-            framework_totals[ftype] = Decimal("0")
+        framework_totals[ftype] = framework_totals.get(ftype, Decimal("0")) + to_decimal(
+            amount, default="0"
+        )
+    # Expenses are stored negative; these totals are reported as magnitudes.
+    framework_totals = {ftype: abs(total) for ftype, total in framework_totals.items()}
 
     income_total = framework_totals.get("income", Decimal("0"))
     needs_total = framework_totals.get("needs", Decimal("0"))
