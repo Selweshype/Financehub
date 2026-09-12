@@ -1,0 +1,48 @@
+<!-- HTMX partial — single liability table row after balance update -->
+<tr id="lib-row-{{ lib.external_id }}" x-data="{ editing: false }">
+    <td>{{ lib.name }}</td>
+    <td>
+        <span class="liability-badge liability-badge--{{ lib.liability_type }}">
+            {{ lib.liability_type | replace('_', ' ') }}
+        </span>
+    </td>
+    <td style="text-align:right;">
+        <span x-show="!editing" style="font-weight:600;color:var(--color-danger);">€{{ lib.current_balance }}</span>
+        <form
+            x-show="editing"
+            x-cloak
+            hx-put="/health/liabilities/{{ lib.external_id }}"
+            hx-target="#lib-row-{{ lib.external_id }}"
+            hx-swap="outerHTML"
+            style="display:flex;gap:.4rem;justify-content:flex-end;"
+        >
+            <input
+                type="number"
+                name="new_balance"
+                step="0.01"
+                min="0"
+                value="{{ lib.current_balance }}"
+                style="width:120px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.3rem .5rem;font-size:.85rem;"
+            >
+            <button type="submit" class="btn btn--primary" style="font-size:.75rem;padding:.25rem .5rem;">Save</button>
+        </form>
+    </td>
+    <td>
+        <div style="display:flex;gap:.4rem;">
+            <button
+                class="btn btn--ghost"
+                style="font-size:.75rem;padding:.2rem .5rem;"
+                @click="editing = !editing"
+                x-text="editing ? 'Cancel' : 'Update'"
+            ></button>
+            <button
+                class="btn btn--danger"
+                style="font-size:.75rem;padding:.2rem .5rem;"
+                hx-delete="/health/liabilities/{{ lib.external_id }}"
+                hx-target="#lib-row-{{ lib.external_id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete '{{ lib.name }}'?"
+            >Delete</button>
+        </div>
+    </td>
+</tr>

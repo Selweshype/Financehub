@@ -91,6 +91,7 @@ h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
 .flash--success { background: color-mix(in srgb, var(--color-success) 15%, transparent); color: var(--color-success); }
 .flash--error { background: color-mix(in srgb, var(--color-danger) 15%, transparent); color: var(--color-danger); }
 .flash--warning { background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-warning); }
+.flash--info { background: color-mix(in srgb, var(--color-accent) 12%, transparent); color: var(--color-text); border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent); }
 
 /* Cards */
 .card {
@@ -143,3 +144,194 @@ th { font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); text-t
     .content { margin-left: 0; padding: 1rem; }
     body { flex-direction: column; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Budget progress bars                                                 */
+/* ------------------------------------------------------------------ */
+.budget-bar {
+    width: 100%;
+    height: 10px;
+    background: var(--color-border);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+.budget-bar__fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+    min-width: 0;
+}
+
+.budget-bar--warning .budget-bar__fill {
+    background: var(--color-warning);
+}
+
+.budget-bar--over .budget-bar__fill {
+    background: var(--color-danger);
+}
+
+/* ------------------------------------------------------------------ */
+/* Stats grid                                                           */
+/* ------------------------------------------------------------------ */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .stat-grid { grid-template-columns: 1fr; }
+}
+
+.stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Wizard step indicator                                                */
+/* ------------------------------------------------------------------ */
+.wizard-step {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.wizard-step__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.wizard-step__item--active {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.wizard-step__number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-border);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.wizard-step__item--active .wizard-step__number {
+    background: var(--color-accent);
+    color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
+/* Alert badges and cards                                               */
+/* ------------------------------------------------------------------ */
+.alert-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--color-danger);
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.alert-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    transition: border-color 0.15s;
+}
+
+.alert-card--unread {
+    border-left: 3px solid var(--color-accent);
+}
+
+.alert-type-badge {
+    display: inline-block;
+    font-size: .7rem;
+    padding: .15rem .4rem;
+    border-radius: 3px;
+    background: var(--color-border);
+    color: var(--color-text-muted);
+}
+.alert-type-badge--budget_exceeded {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: var(--color-danger);
+}
+.alert-type-badge--budget_warning_80 {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+}
+.alert-type-badge--unusual_spend {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+}
+.alert-type-badge--goal_milestone {
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
+    color: var(--color-success);
+}
+
+/* ------------------------------------------------------------------ */
+/* Financial health charts                                              */
+/* ------------------------------------------------------------------ */
+.chart-container { overflow-x: auto; }
+.chart-container svg { width: 100%; height: auto; display: block; }
+
+/* Liability type badges */
+.liability-badge {
+    font-size: .7rem;
+    padding: .15rem .4rem;
+    border-radius: 3px;
+    background: var(--color-border);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+.liability-badge--credit_card {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: var(--color-danger);
+}
+.liability-badge--mortgage {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+}
+.liability-badge--student_loan {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Savings goals grid                                                   */
+/* ------------------------------------------------------------------ */
+.goal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.goal-card { transition: box-shadow 0.15s; }
+.goal-card:hover { box-shadow: 0 0 0 1px var(--color-accent); }
+
+[x-cloak] { display: none !important; }
+
+/* ------------------------------------------------------------------ */
+/* HTMX loading indicator                                               */
+/* ------------------------------------------------------------------ */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: inline; }
+.htmx-request.htmx-indicator { display: inline; }

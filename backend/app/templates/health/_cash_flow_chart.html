@@ -1,0 +1,60 @@
+{% if svg.has_data %}
+<div>
+    <svg viewBox="0 0 600 220" role="img" aria-label="Cash flow by month" style="width:100%;height:auto;display:block;">
+
+        <!-- Zero baseline -->
+        <line x1="40" y1="{{ svg.baseline_y }}" x2="560" y2="{{ svg.baseline_y }}"
+              stroke="var(--color-border)" stroke-width="1"/>
+
+        {% for bar in svg.bars %}
+        <rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}"
+              fill="{{ bar.color }}" rx="2"/>
+        {% endfor %}
+
+        <!-- Month labels -->
+        {% for lbl in svg.labels %}
+        <text x="{{ lbl.x }}" y="196" text-anchor="middle"
+              fill="var(--color-text-muted)" font-size="10" font-family="inherit">{{ lbl.label }}</text>
+        {% endfor %}
+
+        <!-- Legend -->
+        <rect x="40" y="207" width="9" height="6" fill="var(--color-success)" rx="1"/>
+        <text x="53" y="213" fill="var(--color-text-muted)" font-size="9" font-family="inherit">Income</text>
+        <rect x="100" y="207" width="9" height="6" fill="var(--color-danger)" rx="1"/>
+        <text x="113" y="213" fill="var(--color-text-muted)" font-size="9" font-family="inherit">Expenses</text>
+    </svg>
+
+    <!-- Monthly summary table -->
+    <div style="margin-top:.75rem;overflow-x:auto;">
+        <table style="font-size:.8rem;">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th style="text-align:right;">Income</th>
+                    <th style="text-align:right;">Expenses</th>
+                    <th style="text-align:right;">Net</th>
+                    <th style="text-align:right;">Savings rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in snapshots %}
+                {% set cf = s.net_cash_flow | float %}
+                <tr>
+                    <td>{{ s.period_month }}</td>
+                    <td style="text-align:right;color:var(--color-success);">€{{ "%.0f"|format(s.total_income|float) }}</td>
+                    <td style="text-align:right;color:var(--color-danger);">€{{ "%.0f"|format(s.total_expenses|float) }}</td>
+                    <td style="text-align:right;font-weight:600;{% if cf < 0 %}color:var(--color-danger);{% elif cf > 0 %}color:var(--color-success);{% endif %}">
+                        {% if cf >= 0 %}+{% endif %}€{{ "%.0f"|format(cf) }}
+                    </td>
+                    <td style="text-align:right;color:var(--color-text-muted);">{{ "%.1f"|format(s.savings_rate|float) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div style="text-align:center;padding:2rem 0;color:var(--color-text-muted);">
+    No cash flow data yet. Click <strong>Refresh data</strong> to generate snapshots.
+</div>
+{% endif %}

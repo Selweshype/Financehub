@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}New Savings Goal — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">New Savings Goal</h1>
+    <a href="/goals/" class="btn btn--ghost">← Goals</a>
+</div>
+
+<div class="card" style="max-width:560px;">
+    <form action="/goals/" method="post">
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Goal name</label>
+                <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="e.g. New laptop, Holiday fund"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;"
+                >
+            </div>
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Goal type</label>
+                <select name="goal_type" style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;">
+                    <option value="custom" {% if goal_type == 'custom' %}selected{% endif %}>Custom</option>
+                    <option value="purchase" {% if goal_type == 'purchase' %}selected{% endif %}>Purchase</option>
+                    <option value="emergency_fund" {% if goal_type == 'emergency_fund' %}selected{% endif %}>Emergency Fund</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Target amount (€)</label>
+                <input
+                    type="number"
+                    name="target_amount"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="1000.00"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;"
+                >
+            </div>
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Target date <span style="font-weight:400;">(optional — enables monthly savings calculation)</span></label>
+                <input
+                    type="date"
+                    name="target_date"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;"
+                >
+            </div>
+
+            {% if accounts %}
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Link to account <span style="font-weight:400;">(optional)</span></label>
+                <select name="linked_account_ext_id" style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;">
+                    <option value="">— None —</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.external_id }}">{{ acc.account_name or acc.bank_name or 'Account' }} ({{ acc.currency }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Notes <span style="font-weight:400;">(optional)</span></label>
+                <textarea
+                    name="notes"
+                    rows="2"
+                    placeholder="What is this goal for?"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;resize:vertical;font-family:inherit;"
+                ></textarea>
+            </div>
+
+            <div style="display:flex;gap:.75rem;">
+                <button type="submit" class="btn btn--primary">Create Goal</button>
+                <a href="/goals/" class="btn btn--ghost">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

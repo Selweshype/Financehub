@@ -1,0 +1,25 @@
+{% if salary_detected and active_goals %}
+<div class="flash flash--info" style="margin-bottom:1.5rem;" x-data="{ show: true }" x-show="show">
+    <div style="display:flex;align-items:flex-start;gap:1rem;">
+        <div style="flex:1;">
+            <strong>Income detected this week</strong>
+            <p style="margin:.25rem 0 .75rem;font-size:.875rem;color:var(--color-text-muted);">
+                Payday is the best moment to pay yourself first.
+                Consider contributing to a goal before spending — <em>Save More Tomorrow</em> starts now.
+            </p>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                {% for goal in active_goals[:3] %}
+                <a href="/goals/{{ goal.external_id }}" class="btn btn--ghost" style="font-size:.78rem;padding:.2rem .5rem;">
+                    {{ goal.name }}{% if goal.required_monthly %} · €{{ goal.required_monthly }}/mo{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <button
+            @click="show = false"
+            style="background:none;border:none;color:var(--color-text-muted);cursor:pointer;font-size:1.2rem;line-height:1;padding:.15rem .25rem;"
+            aria-label="Dismiss"
+        >&times;</button>
+    </div>
+</div>
+{% endif %}

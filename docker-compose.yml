@@ -21,6 +21,14 @@ services:
     restart: unless-stopped
     networks:
       - backend          # backend-only: caddy is the sole ingress boundary
+    # Container hardening (finding M3)
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
     volumes:
       - db_data:/data
       - ml_models:/models
@@ -32,8 +40,16 @@ services:
       - SOPS_AGE_KEY_FILE=/secrets/age-key.txt
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      # Caddy is the sole ingress on an internal network, so X-Forwarded-For
+      # cannot be spoofed by a client — let the rate limiter use it.
+      - FINANCEHUB_TRUST_PROXY=1
+      # WebAuthn RP ID and origin. Deriving these from the Host header would
+      # let an attacker steer the ceremony, so they are pinned here.
+      # Replace with your real domain before deploying.
+      - FINANCEHUB_RP_ID=financehub.example.com
+      - FINANCEHUB_ORIGIN=https://financehub.example.com
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/liveness')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -81,6 +97,12 @@ services:
       context: ./infra/restic
       dockerfile: Dockerfile
     restart: "no"
+    # One-shot job, never part of `docker compose up`. Without this it starts on
+    # every `up` and — because its age-key and secrets.enc.yaml bind mounts do not
+    # exist on a dev machine — Docker creates DIRECTORIES at those host paths.
+    # `docker compose run --rm backup` (what `make backup` does) still works:
+    # `run` enables the service's profile implicitly.
+    profiles: ["backup"]
     networks: []
     volumes:
       - db_data:/data:ro

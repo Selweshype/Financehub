@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Accounts — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Bank Accounts</h1>
+    <a href="/nordigen/connect" class="btn btn--primary">+ Connect Bank</a>
+</div>
+
+{% if accounts %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+    {% for acc in accounts %}
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+            <div>
+                <div style="font-weight:600;font-size:1rem;">{{ acc.account_name or 'Account' }}</div>
+                <div style="color:var(--color-text-muted);font-size:.85rem;">{{ acc.bank_name or 'Bank' }}</div>
+            </div>
+            <span style="font-size:.75rem;padding:.2rem .5rem;background:var(--color-border);border-radius:4px;color:var(--color-text-muted);">
+                {{ acc.currency }}
+            </span>
+        </div>
+
+        {% if acc.balance_amount %}
+        <div style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem;">
+            {% set bal = acc.balance_amount | float %}
+            {% if bal < 0 %}
+            <span style="color:var(--color-danger);">{{ "%.2f"|format(bal) }}</span>
+            {% else %}
+            <span>{{ "%.2f"|format(bal) }}</span>
+            {% endif %}
+            <span style="font-size:.9rem;font-weight:400;color:var(--color-text-muted);">{{ acc.currency }}</span>
+        </div>
+        {% if acc.balance_updated_at %}
+        <div style="font-size:.75rem;color:var(--color-text-muted);">
+            Balance type: {{ acc.balance_type or 'interimAvailable' }}
+        </div>
+        {% endif %}
+        {% else %}
+        <div style="color:var(--color-text-muted);font-size:.9rem;">Balance not yet synced</div>
+        {% endif %}
+
+        <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--color-border);display:flex;gap:.5rem;">
+            <a href="/transactions/?account_id={{ acc.external_id }}" class="btn btn--ghost" style="font-size:.8rem;padding:.3rem .6rem;">
+                View Transactions
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="color:var(--color-text-muted);margin-bottom:1rem;">No bank accounts connected yet.</p>
+    <a href="/nordigen/connect" class="btn btn--primary">Connect your first bank</a>
+</div>
+{% endif %}
+{% endblock %}

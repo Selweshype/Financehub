@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Emergency Fund — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Build an Emergency Fund</h1>
+    <a href="/goals/" class="btn btn--ghost">← Goals</a>
+</div>
+
+<!-- Science card -->
+<div class="card" style="margin-bottom:1.5rem;border-left:3px solid var(--color-warning);">
+    <h2 style="margin-bottom:.5rem;">Why 3 months?</h2>
+    <p style="color:var(--color-text-muted);font-size:.9rem;line-height:1.7;">
+        Mental Accounting research (Thaler, 1999) shows that money kept in a <em>dedicated</em> account
+        is significantly less likely to be spent impulsively. Three months of fixed costs covers most
+        job-loss, medical, or car-repair events without resorting to high-interest credit.
+    </p>
+</div>
+
+<!-- Suggestion card -->
+{% if template.avg_monthly_fixed != '0.00' %}
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="margin-bottom:.75rem;">Your personalised suggestion</h2>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Avg monthly fixed costs</div>
+            <div style="font-size:1.4rem;font-weight:700;">€{{ template.avg_monthly_fixed }}</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Recommended target (×3)</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--color-warning);">€{{ template.suggested_target }}</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size:.8rem;color:var(--color-text-muted);margin-bottom:.25rem;">Months of expenses covered</div>
+            <div style="font-size:1.4rem;font-weight:700;">{{ template.months_of_expenses }}</div>
+        </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--color-text-muted);margin-top:.75rem;">
+        Based on Housing, Utilities, and Healthcare transactions over the last 3 months.
+    </p>
+</div>
+{% endif %}
+
+<!-- Creation form -->
+<div class="card" style="max-width:520px;">
+    <h2 style="margin-bottom:1rem;">Set your goal</h2>
+    <form action="/goals/emergency-fund" method="post">
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Target amount (€)</label>
+                <input
+                    type="number"
+                    name="target_amount"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value="{{ template.suggested_target }}"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;"
+                >
+                <div style="font-size:.78rem;color:var(--color-text-muted);margin-top:.25rem;">
+                    Adjust if your suggested target is zero — enter your estimated monthly fixed expenses × 3.
+                </div>
+            </div>
+
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Target date <span style="font-weight:400;">(optional — shows monthly savings needed)</span></label>
+                <input
+                    type="date"
+                    name="target_date"
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;"
+                >
+            </div>
+
+            {% if accounts %}
+            <div>
+                <label style="display:block;font-size:.8rem;color:var(--color-text-muted);margin-bottom:.3rem;">Link to savings account <span style="font-weight:400;">(optional)</span></label>
+                <select name="linked_account_ext_id" style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.5rem .75rem;">
+                    <option value="">— None —</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.external_id }}">{{ acc.account_name or acc.bank_name or 'Account' }} ({{ acc.currency }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div style="display:flex;gap:.75rem;">
+                <button type="submit" class="btn btn--primary">Create Emergency Fund</button>
+                <a href="/goals/" class="btn btn--ghost">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

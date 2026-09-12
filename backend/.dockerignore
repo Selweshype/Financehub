@@ -1,0 +1,25 @@
+# Keep the build context small and deterministic.
+# Without this, a developer's local .venv (hundreds of MB) is uploaded to the
+# daemon on every build, and a stale local virtualenv could shadow the one the
+# builder stage creates from uv.lock.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv/
+
+# Never bake data or secrets into an image layer
+*.db
+*.db-shm
+*.db-wal
+secrets/
+*.dec.yaml
+
+# Not needed at runtime
+tests/
+.git/
+*.md

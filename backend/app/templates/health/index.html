@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Financial Health — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Financial Health</h1>
+    <div style="display:flex;gap:.5rem;">
+        <a href="/health/liabilities" class="btn btn--ghost">Liabilities</a>
+        <form action="/health/snapshots/generate" method="post" style="display:inline;">
+            <button
+                type="submit"
+                class="btn btn--primary"
+                hx-post="/health/snapshots/generate"
+                hx-target="#snapshot-stats"
+                hx-swap="outerHTML"
+                hx-indicator="#snap-spinner"
+            >Refresh data</button>
+            <span id="snap-spinner" class="htmx-indicator" style="margin-left:.4rem;color:var(--color-text-muted);font-size:.85rem;">Calculating…</span>
+        </form>
+    </div>
+</div>
+
+<!-- KPI stat grid — id enables HTMX outerHTML refresh after snapshot generation -->
+<div id="snapshot-stats">
+    {% include "health/_snapshot_stats.html" %}
+</div>
+
+<!-- Net Worth Trend -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="margin-bottom:1rem;">Net Worth Trend</h2>
+    <div
+        class="chart-container"
+        hx-get="/health/_net-worth"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+    >
+        <div style="color:var(--color-text-muted);font-size:.9rem;padding:2rem 0;text-align:center;" class="htmx-indicator">Loading…</div>
+    </div>
+</div>
+
+<!-- Cash Flow + 50/30/20 side by side on wider screens -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin-bottom:1.5rem;">
+    <div class="card">
+        <h2 style="margin-bottom:1rem;">Cash Flow</h2>
+        <div
+            class="chart-container"
+            hx-get="/health/_cash-flow"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div style="color:var(--color-text-muted);font-size:.9rem;padding:2rem 0;text-align:center;">Loading…</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-bottom:1rem;">Needs / Wants / Savings</h2>
+        <div
+            class="chart-container"
+            hx-get="/health/_category-trends"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div style="color:var(--color-text-muted);font-size:.9rem;padding:2rem 0;text-align:center;">Loading…</div>
+        </div>
+    </div>
+</div>
+
+<!-- Liabilities summary -->
+<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <h2 style="margin:0;">Liabilities</h2>
+        <a href="/health/liabilities" class="btn btn--ghost" style="font-size:.85rem;">Manage</a>
+    </div>
+    {% if liabilities %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th style="text-align:right;">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lib in liabilities %}
+            <tr>
+                <td>{{ lib.name }}</td>
+                <td>
+                    <span class="liability-badge liability-badge--{{ lib.liability_type }}">
+                        {{ lib.liability_type | replace('_', ' ') }}
+                    </span>
+                </td>
+                <td style="text-align:right;font-weight:600;color:var(--color-danger);">€{{ lib.current_balance }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--color-text-muted);font-size:.9rem;">No liabilities recorded. <a href="/health/liabilities" style="color:var(--color-accent);">Add one →</a></p>
+    {% endif %}
+</div>
+{% endblock %}

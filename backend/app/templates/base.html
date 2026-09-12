@@ -5,18 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FinanceHub{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/app.css" nonce="{{ csp_nonce }}">
+    {# htmx injects a <style> element for its .htmx-indicator classes on load,
+       which style-src blocks (it is a style element, not a style attribute, so
+       style-src-attr does not cover it). app.css already defines those classes,
+       so the injected copy is redundant. Turning it off is a declarative config
+       with no inline script — the CSP stays strict. #}
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
     <script src="/static/js/htmx.min.js" nonce="{{ csp_nonce }}" defer></script>
-    <script src="/static/js/alpine.min.js" nonce="{{ csp_nonce }}" defer></script>
+    {# Alpine is NOT loaded globally. Its standard build evaluates directive
+       expressions with new Function(), which needs script-src 'unsafe-eval',
+       and it injects an [x-cloak] <style> element that style-src blocks. Under
+       this CSP it therefore cannot work, and loading it on every page only
+       produced console errors and a 44 KB download.
+
+       Pages that still carry x-* directives opt in via this block. They remain
+       non-functional until one of these is chosen: Alpine's CSP build
+       (@alpinejs/csp, which requires rewriting the expressions), plain nonce'd
+       JavaScript, or relaxing the CSP. #}
+    {% block extra_scripts %}{% endblock %}
 </head>
-<body x-data>
+<body>
     <nav class="sidebar">
         <div class="logo">FinanceHub</div>
         <ul>
             <li><a href="/">Dashboard</a></li>
-            <li><a href="/transactions">Transactions</a></li>
-            <li><a href="/categories">Categories</a></li>
-            <li><a href="/settings/banks">Banks</a></li>
-            <li><a href="/admin">Admin</a></li>
+            <li><a href="/accounts/">Accounts</a></li>
+            <li><a href="/transactions/">Transactions</a></li>
+            <li><a href="/transactions/import">Import CSV</a></li>
+            <li><a href="/budgets/">Budgets</a></li>
+            <li><a href="/goals/">Goals</a></li>
+            <li><a href="/health/">Health</a></li>
+            <li>
+                <a href="/alerts/" style="display:flex;align-items:center;justify-content:space-between;">
+                    Alerts
+                    <span
+                        hx-get="/alerts/_count"
+                        hx-trigger="load"
+                        hx-swap="outerHTML"
+                    ></span>
+                </a>
+            </li>
+            <li><a href="/categories/">Categories</a></li>
+            <li><a href="/nordigen/connect">Banks</a></li>
         </ul>
     </nav>
     <main class="content">

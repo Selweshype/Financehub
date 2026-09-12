@@ -1,6 +1,5 @@
 """Tests for backend/app/config.py — secrets loading and Pydantic models."""
 
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,7 +18,6 @@ from app.config import (
     load_secrets,
 )
 
-
 # ---------------------------------------------------------------------------
 # Pydantic model tests
 # ---------------------------------------------------------------------------
@@ -35,9 +33,10 @@ class TestDatabaseConfig:
             DatabaseConfig()
 
     def test_key_must_be_string(self):
-        # Pydantic coerces ints to str in lax mode but validates type presence
-        cfg = DatabaseConfig(key=42)
-        assert cfg.key == "42"
+        # Pydantic v2 does not coerce int -> str even in lax mode; a non-string
+        # key is a validation error, not a silently stringified value.
+        with pytest.raises(ValidationError):
+            DatabaseConfig(key=42)
 
 
 class TestAppConfig:
@@ -221,7 +220,9 @@ class TestLoadSecrets:
         mock_result.stdout = "this is not yaml: [{"
 
         with patch("app.config.subprocess.run", return_value=mock_result):
-            with pytest.raises(Exception):
+            # Specifically a YAML parse error — a bare `Exception` here would
+            # also have passed if load_secrets raised NameError or TypeError.
+            with pytest.raises(yaml.YAMLError):
                 load_secrets()
 
     def test_yaml_missing_required_section_raises_validation_error(self):

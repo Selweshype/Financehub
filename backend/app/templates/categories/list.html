@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Categories — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">Categories</h1>
+    <a href="/categories/rules" class="btn btn--ghost">Manage Rules</a>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+    <table>
+        <thead>
+            <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Dutch</th>
+                <th>Framework</th>
+                <th>System</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat in categories %}
+            <tr>
+                <td style="font-size:1.2rem;">{{ cat.icon or '—' }}</td>
+                <td>
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ cat.color or '#888' }};margin-right:.4rem;vertical-align:middle;"></span>
+                    {{ cat.name }}
+                </td>
+                <td style="color:var(--color-text-muted);">{{ cat.name_nl or '—' }}</td>
+                <td>
+                    {% if cat.framework_type %}
+                    <span style="font-size:.75rem;padding:.2rem .5rem;border-radius:4px;
+                        {% if cat.framework_type == 'needs' %}background:color-mix(in srgb,var(--color-accent) 15%,transparent);color:var(--color-accent);
+                        {% elif cat.framework_type == 'wants' %}background:color-mix(in srgb,var(--color-warning) 15%,transparent);color:var(--color-warning);
+                        {% elif cat.framework_type == 'savings' %}background:color-mix(in srgb,var(--color-success) 15%,transparent);color:var(--color-success);
+                        {% elif cat.framework_type == 'income' %}background:color-mix(in srgb,#8BC34A 15%,transparent);color:#8BC34A;
+                        {% endif %}">
+                        {{ cat.framework_type }}
+                    </span>
+                    {% else %}
+                    <span style="color:var(--color-text-muted);font-size:.85rem;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if cat.is_system %}
+                    <span style="font-size:.75rem;color:var(--color-text-muted);">system</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/transactions/?category_id={{ cat.external_id }}" class="btn btn--ghost" style="font-size:.75rem;padding:.2rem .5rem;">
+                        Transactions
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align:center;color:var(--color-text-muted);padding:2rem;">
+                    No categories found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

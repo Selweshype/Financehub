@@ -1,0 +1,136 @@
+{% extends "base_auth.html" %}
+{% block title %}Login — FinanceHub{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;margin:4rem auto;">
+    <h1 style="margin-bottom:1.5rem;">FinanceHub</h1>
+
+    <!-- Passkey (WebAuthn) login.
+         Plain JavaScript rather than Alpine: Alpine's standard build needs
+         script-src 'unsafe-eval', which this CSP does not grant, so the
+         directives silently did nothing and the button was dead. -->
+    <div style="margin-bottom:2rem;">
+        <button id="passkey-btn" class="btn btn--primary" style="width:100%;justify-content:center;">
+            <span id="passkey-label">🔑 Sign in with Passkey</span>
+        </button>
+        <p id="passkey-error" hidden style="color:var(--color-danger);margin-top:.5rem;font-size:.85rem;"></p>
+    </div>
+
+    <hr style="border-color:var(--color-border);margin-bottom:1.5rem;">
+
+    <!-- TOTP fallback -->
+    <details>
+        <summary style="cursor:pointer;color:var(--color-text-muted);font-size:.9rem;margin-bottom:1rem;">Use authenticator code instead</summary>
+        <form action="/auth/totp/verify" method="post" style="margin-top:1rem;">
+            <label for="code" style="display:block;margin-bottom:.5rem;font-size:.9rem;color:var(--color-text-muted);">6-digit code</label>
+            <div style="display:flex;gap:.5rem;">
+                <input
+                    type="text"
+                    id="code"
+                    name="code"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="\d{6}"
+                    required
+                    style="flex:1;padding:.5rem .75rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);font-size:1.1rem;letter-spacing:.2em;"
+                >
+                <button type="submit" class="btn btn--primary">Verify</button>
+            </div>
+        </form>
+    </details>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+/* base64url <-> ArrayBuffer helpers.
+   The server speaks the standard WebAuthn JSON encoding (unpadded base64url)
+   in both directions. The previous version of this file decoded credential
+   ids as hex while the server emitted base64url, so the ceremony could never
+   have completed. */
+function b64urlToBuffer(value) {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = padded.length % 4 ? '='.repeat(4 - (padded.length % 4)) : '';
+    const binary = atob(padded + pad);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function bufferToB64url(buf) {
+    const bytes = new Uint8Array(buf);
+    let str = '';
+    for (let i = 0; i < bytes.length; i++) {
+        str += String.fromCharCode(bytes[i]);
+    }
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+const btn = document.getElementById('passkey-btn');
+const label = document.getElementById('passkey-label');
+const errorEl = document.getElementById('passkey-error');
+
+function showError(message) {
+    errorEl.textContent = message;
+    errorEl.hidden = !message;
+}
+
+btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    label.textContent = 'Authenticating\u2026';
+    showError('');
+    try {
+        const optResp = await fetch('/auth/webauthn/authenticate/begin');
+        if (!optResp.ok) {
+            throw new Error('Could not start authentication.');
+        }
+        const { challenge_id, publicKey } = await optResp.json();
+
+        publicKey.challenge = b64urlToBuffer(publicKey.challenge);
+        if (publicKey.allowCredentials) {
+            publicKey.allowCredentials = publicKey.allowCredentials.map(c => ({
+                ...c, id: b64urlToBuffer(c.id)
+            }));
+        }
+
+        const credential = await navigator.credentials.get({ publicKey });
+
+        const payload = {
+            challenge_id: challenge_id,
+            credential: {
+                id: credential.id,
+                rawId: bufferToB64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    authenticatorData: bufferToB64url(credential.response.authenticatorData),
+                    clientDataJSON: bufferToB64url(credential.response.clientDataJSON),
+                    signature: bufferToB64url(credential.response.signature),
+                    userHandle: credential.response.userHandle
+                        ? bufferToB64url(credential.response.userHandle) : null,
+                },
+                clientExtensionResults: credential.getClientExtensionResults
+                    ? credential.getClientExtensionResults() : {},
+            }
+        };
+
+        const verResp = await fetch('/auth/webauthn/authenticate/complete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const result = await verResp.json();
+
+        if (verResp.ok && result.redirect) {
+            window.location.href = result.redirect;
+            return;
+        }
+        showError(result.detail || 'Authentication failed.');
+    } catch (err) {
+        showError(err.message || 'Authentication cancelled or failed.');
+    } finally {
+        btn.disabled = false;
+        label.textContent = '\ud83d\udd11 Sign in with Passkey';
+    }
+});
+</script>
+{% endblock %}

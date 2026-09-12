@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Alerts — FinanceHub{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;">
+        Alerts
+        {% if unread %}
+        <span class="alert-badge" style="vertical-align:middle;margin-left:.4rem;">{{ unread | length }}</span>
+        {% endif %}
+    </h1>
+    {% if alerts %}
+    <form action="/alerts/dismiss-all" method="post">
+        <button type="submit" class="btn btn--ghost" style="font-size:.85rem;">Dismiss all</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if not alerts %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="color:var(--color-text-muted);">No alerts. You are all caught up.</p>
+</div>
+
+{% else %}
+
+{% if unread %}
+<div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.75rem;">
+    Unread ({{ unread | length }})
+</div>
+<div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem;">
+    {% for alert in unread %}
+    {% include "alerts/_alert_item.html" %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if read %}
+<div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.75rem;">
+    Read ({{ read | length }})
+</div>
+<div style="display:flex;flex-direction:column;gap:.6rem;">
+    {% for alert in read %}
+    {% include "alerts/_alert_item.html" %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -36,9 +36,42 @@ CRON_JOB="0 3 * * * cd /opt/financehub && docker compose run --rm backup >> /var
 (crontab -l 2>/dev/null | grep -Fxv "$CRON_JOB"; echo "$CRON_JOB") | crontab -
 echo "Backup cron job installed"
 
+# 5. Refuse to declare success while config still holds shipped placeholders.
+# Finding L4: .sops.yaml keeps a literal REPLACEME recipient, so encryption
+# would silently target nothing real. The Caddyfile and compose file carry the
+# same example-domain problem.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PLACEHOLDERS_FOUND=0
+
+check_placeholder() {
+    local file="$1" pattern="$2" hint="$3"
+    if [ -f "$REPO_ROOT/$file" ] && grep -q "$pattern" "$REPO_ROOT/$file"; then
+        echo "  !! $file still contains a placeholder — $hint" >&2
+        PLACEHOLDERS_FOUND=1
+    fi
+}
+
+echo ""
+echo "Checking for unreplaced placeholders..."
+check_placeholder ".sops.yaml" "age1REPLACEME" \
+    "paste the age public key printed above"
+check_placeholder "infra/caddy/Caddyfile" "financehub.example.com" \
+    "set your real domain"
+check_placeholder "infra/caddy/Caddyfile" "admin@example.com" \
+    "set your real ACME contact email"
+check_placeholder "docker-compose.yml" "financehub.example.com" \
+    "set FINANCEHUB_RP_ID and FINANCEHUB_ORIGIN to your real domain"
+
+if [ "$PLACEHOLDERS_FOUND" -ne 0 ]; then
+    echo ""
+    echo "Bootstrap INCOMPLETE — fix the placeholders above before starting." >&2
+    exit 1
+fi
+
+echo "  All placeholders replaced."
 echo ""
 echo "Bootstrap complete. Next steps:"
-echo "  1. Update .sops.yaml with your age public key"
-echo "  2. Create and encrypt secrets/secrets.yaml"
-echo "  3. Update infra/caddy/Caddyfile with your domain"
-echo "  4. Run: docker compose up -d"
+echo "  1. Create and encrypt secrets/secrets.yaml -> secrets/secrets.enc.yaml"
+echo "  2. Run: docker compose up -d"
+echo "  3. Read the first-run SETUP TOKEN from: docker compose logs app"
+echo "  4. Enroll a login at https://<your-domain>/auth/webauthn/register?token=<token>"

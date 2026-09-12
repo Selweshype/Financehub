@@ -1,0 +1,102 @@
+<div class="card goal-card" id="goal-{{ goal.external_id }}" x-data="{ showContribute: false }">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+        <div>
+            <div style="font-weight:600;font-size:1rem;margin-bottom:.25rem;">{{ goal.name }}</div>
+            <span style="font-size:.7rem;padding:.15rem .4rem;border-radius:3px;
+                {% if goal.goal_type == 'emergency_fund' %}background:color-mix(in srgb,var(--color-warning) 15%,transparent);color:var(--color-warning);
+                {% elif goal.goal_type == 'purchase' %}background:color-mix(in srgb,var(--color-accent) 15%,transparent);color:var(--color-accent);
+                {% else %}background:var(--color-border);color:var(--color-text-muted);
+                {% endif %}">
+                {{ goal.goal_type | replace('_', ' ') }}
+            </span>
+        </div>
+        {% if goal.is_completed %}
+        <span style="font-size:.8rem;color:var(--color-success);font-weight:600;">Completed</span>
+        {% endif %}
+    </div>
+
+    <!-- Progress bar -->
+    {% set pct_float = goal.pct | float %}
+    <div style="margin-bottom:.75rem;">
+        <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.4rem;">
+            <span style="color:var(--color-success);font-weight:600;">€{{ goal.current_amount }}</span>
+            <span style="color:var(--color-text-muted);">of €{{ goal.target_amount }}</span>
+        </div>
+        <div style="height:8px;background:var(--color-border);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:{{ [pct_float, 100] | min }}%;
+                background:{% if pct_float >= 100 %}var(--color-success){% elif pct_float >= 80 %}var(--color-warning){% else %}var(--color-accent){% endif %};
+                border-radius:4px;transition:width .4s ease;"></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:.25rem;">{{ goal.pct }}% saved</div>
+    </div>
+
+    <!-- Meta badges -->
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem;">
+        {% if goal.required_monthly %}
+        <span style="font-size:.78rem;padding:.15rem .4rem;border-radius:3px;background:color-mix(in srgb,var(--color-success) 10%,transparent);color:var(--color-success);">
+            €{{ goal.required_monthly }}/month needed
+        </span>
+        {% endif %}
+        {% if goal.target_date %}
+        <span style="font-size:.78rem;padding:.15rem .4rem;border-radius:3px;background:var(--color-border);color:var(--color-text-muted);">
+            {% if goal.days_remaining is not none %}
+                {% if goal.days_remaining < 0 %}
+                <span style="color:var(--color-danger);">{{ goal.days_remaining | abs }} days overdue</span>
+                {% elif goal.days_remaining == 0 %}
+                <span style="color:var(--color-warning);">Due today</span>
+                {% else %}
+                {{ goal.days_remaining }} days left
+                {% endif %}
+            {% else %}
+            {{ goal.target_date }}
+            {% endif %}
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:.5rem;border-top:1px solid var(--color-border);padding-top:.75rem;">
+        <a href="/goals/{{ goal.external_id }}" class="btn btn--ghost" style="font-size:.75rem;padding:.25rem .5rem;">Detail</a>
+        {% if not goal.is_completed %}
+        <button
+            class="btn btn--primary"
+            style="font-size:.75rem;padding:.25rem .5rem;"
+            @click="showContribute = !showContribute"
+        >+ Contribute</button>
+        {% endif %}
+        <button
+            class="btn btn--danger"
+            style="font-size:.75rem;padding:.25rem .5rem;margin-left:auto;"
+            hx-delete="/goals/{{ goal.external_id }}"
+            hx-target="#goal-{{ goal.external_id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Delete '{{ goal.name }}'? This cannot be undone."
+        >Delete</button>
+    </div>
+
+    <!-- Inline contribute form (Alpine toggle) -->
+    <div x-show="showContribute" x-cloak style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--color-border);">
+        <form
+            hx-post="/goals/{{ goal.external_id }}/contribute"
+            hx-target="#goal-{{ goal.external_id }}"
+            hx-swap="outerHTML"
+            style="display:flex;gap:.5rem;align-items:flex-end;"
+        >
+            <div style="flex:1;">
+                <label style="display:block;font-size:.78rem;color:var(--color-text-muted);margin-bottom:.25rem;">Amount (€)</label>
+                <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    required
+                    style="width:100%;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);padding:.4rem .6rem;"
+                >
+            </div>
+            <button type="submit" class="btn btn--primary" style="font-size:.8rem;padding:.4rem .75rem;">Save</button>
+            <button type="button" class="btn btn--ghost" style="font-size:.8rem;padding:.4rem .75rem;" @click="showContribute = false">Cancel</button>
+        </form>
+    </div>
+</div>
